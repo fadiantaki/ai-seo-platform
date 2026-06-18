@@ -38,19 +38,26 @@ export default function Home() {
           When someone asks Claude or ChatGPT for the best restaurant or fashion brand,
           your business shows up. One script tag. No technical knowledge needed.
         </p>
-        <div className="flex justify-center gap-4 mb-10">
-          <span className="bg-white/10 text-slate-300 px-4 py-2 rounded-full text-sm">🍽️ Restaurants</span>
-          <span className="bg-white/10 text-slate-300 px-4 py-2 rounded-full text-sm">👗 Fashion Brands</span>
-          <span className="bg-white/10 text-slate-300 px-4 py-2 rounded-full text-sm">more coming soon</span>
-        </div>
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Link href="/dashboard" className="bg-purple-600 hover:bg-purple-500 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-colors">
-            Register your restaurant free
+        <p className="text-slate-500 text-sm mb-8">Choose your business type to get started</p>
+        <div className="grid sm:grid-cols-2 gap-4 max-w-2xl mx-auto mb-10">
+          <Link href="/dashboard?type=restaurant"
+            className="group bg-white/5 hover:bg-purple-900/40 border border-white/10 hover:border-purple-500 rounded-2xl p-6 text-left transition-all">
+            <div className="text-3xl mb-3">🍽️</div>
+            <h3 className="font-bold text-lg mb-1 group-hover:text-purple-300 transition-colors">Restaurant</h3>
+            <p className="text-slate-400 text-sm">Appear when people ask AI for the best places to eat near them</p>
+            <p className="text-xs text-slate-500 mt-3 italic">&ldquo;best Italian near me&rdquo;, &ldquo;top sushi spots downtown&rdquo;</p>
+            <div className="mt-4 text-purple-400 text-sm font-semibold group-hover:text-purple-300 transition-colors">Get started free →</div>
           </Link>
-          <Link href="/demo" className="border border-white/20 hover:border-white/40 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-colors">
-            See live demo
+          <Link href="/dashboard?type=fashion"
+            className="group bg-white/5 hover:bg-pink-900/40 border border-white/10 hover:border-pink-500 rounded-2xl p-6 text-left transition-all">
+            <div className="text-3xl mb-3">👗</div>
+            <h3 className="font-bold text-lg mb-1 group-hover:text-pink-300 transition-colors">Fashion Brand</h3>
+            <p className="text-slate-400 text-sm">Appear when people ask AI to recommend clothing and style</p>
+            <p className="text-xs text-slate-500 mt-3 italic">&ldquo;best sustainable fashion brands&rdquo;, &ldquo;minimalist streetwear&rdquo;</p>
+            <div className="mt-4 text-pink-400 text-sm font-semibold group-hover:text-pink-300 transition-colors">Get started free →</div>
           </Link>
         </div>
+        <p className="text-slate-600 text-xs">More business types coming soon · Hotels · Law firms · Real estate</p>
       </section>
 
       {/* How it works */}
@@ -59,9 +66,9 @@ export default function Home() {
         <p className="text-slate-400 text-center mb-14">Three steps to AI search visibility</p>
         <div className="grid md:grid-cols-3 gap-8">
           {[
-            { step: '01', title: 'Register & fill your profile', desc: 'Add your restaurant details: menu, hours, specialties, location. Takes 5 minutes.' },
-            { step: '02', title: 'Get your embed script', desc: 'Copy one script tag and paste it into your website head. Your webmaster can do it in 30 seconds.' },
-            { step: '03', title: 'Appear in AI answers', desc: 'Claude, ChatGPT, and Perplexity start surfacing your restaurant when locals search for your cuisine.' },
+            { step: '01', title: 'Register & fill your profile', desc: 'Add your business details: products, specialties, location, contact. Takes 5 minutes.' },
+            { step: '02', title: 'Get your embed script', desc: 'Copy one script tag and paste it into your website head. Works on Shopify, WordPress, Squarespace and more.' },
+            { step: '03', title: 'Appear in AI answers', desc: 'Claude, ChatGPT, and Perplexity start surfacing your business when people search for what you offer.' },
           ].map(({ step, title, desc }) => (
             <div key={step} className="bg-white/5 border border-white/10 rounded-2xl p-6">
               <div className="text-4xl font-black text-purple-500/40 mb-4">{step}</div>
