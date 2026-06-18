@@ -5,8 +5,8 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "AIVisible — Make your restaurant findable by AI",
-  description: "One script tag to appear in Claude, ChatGPT and Perplexity search results.",
+  title: "AIVisible — Make your business visible to AI search",
+  description: "One script tag to make your restaurant, fashion brand, or any business appear in Claude, ChatGPT and Perplexity search results.",
 };
 
 export default function RootLayout({
