@@ -12,7 +12,9 @@ export default function Home() {
           <span className="text-xs bg-purple-800 text-purple-200 px-2 py-0.5 rounded-full">Beta</span>
         </div>
         <div className="flex gap-6 items-center text-sm text-slate-300">
-          <Link href="/demo" className="hover:text-white transition-colors">Live Demo</Link>
+          <Link href="/directory" className="hover:text-white transition-colors">Directory</Link>
+          <Link href="/analytics" className="hover:text-white transition-colors">Analytics</Link>
+          <Link href="/demo" className="hover:text-white transition-colors">Demo</Link>
           <Link href="/dashboard" className="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg transition-colors">
             Get Started
           </Link>
@@ -26,16 +28,21 @@ export default function Home() {
           Now optimizing for Claude, ChatGPT &amp; Perplexity
         </div>
         <h1 className="text-5xl md:text-6xl font-bold leading-tight mb-6">
-          Make your restaurant
+          Make your business
           <br />
           <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-orange-400 bg-clip-text text-transparent">
             visible to AI search
           </span>
         </h1>
-        <p className="text-xl text-slate-300 mb-10 max-w-2xl mx-auto">
-          When someone asks Claude or ChatGPT &ldquo;best Italian restaurant near me&rdquo;,
-          your restaurant shows up. One script tag. No technical knowledge needed.
+        <p className="text-xl text-slate-300 mb-6 max-w-2xl mx-auto">
+          When someone asks Claude or ChatGPT for the best restaurant or fashion brand,
+          your business shows up. One script tag. No technical knowledge needed.
         </p>
+        <div className="flex justify-center gap-4 mb-10">
+          <span className="bg-white/10 text-slate-300 px-4 py-2 rounded-full text-sm">🍽️ Restaurants</span>
+          <span className="bg-white/10 text-slate-300 px-4 py-2 rounded-full text-sm">👗 Fashion Brands</span>
+          <span className="bg-white/10 text-slate-300 px-4 py-2 rounded-full text-sm">more coming soon</span>
+        </div>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Link href="/dashboard" className="bg-purple-600 hover:bg-purple-500 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-colors">
             Register your restaurant free
