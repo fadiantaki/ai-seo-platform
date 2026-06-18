@@ -1,7 +1,8 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { fashionBrands, FashionBrand } from '@/lib/fashion-brands';
+import { supabase } from '@/lib/supabase';
+import { FashionBrand } from '@/lib/fashion-brands';
 
 const STYLE_OPTIONS = ['Sustainable', 'Streetwear', 'Luxury', 'Minimalist', 'Activewear', 'Avant-garde', 'Contemporary', 'Bohemian', 'Vintage', 'Athleisure'];
 
@@ -10,9 +11,12 @@ function slugify(name: string) {
 }
 
 export default function AdminPage() {
-  const [brands, setBrands] = useState<FashionBrand[]>(fashionBrands);
+  const [brands, setBrands] = useState<FashionBrand[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState('');
   const [form, setForm] = useState({
     name: '',
     style: [] as string[],
@@ -27,8 +31,39 @@ export default function AdminPage() {
     plan: 'free' as 'free' | 'starter' | 'pro',
   });
 
-  const update = (k: keyof typeof form, v: unknown) => setForm(f => ({ ...f, [k]: v }));
+  useEffect(() => {
+    loadBrands();
+  }, []);
 
+  async function loadBrands() {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('brands')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (!error && data) {
+      setBrands(data.map(b => ({
+        id: b.id,
+        slug: b.slug,
+        name: b.name,
+        style: b.style,
+        description: b.description,
+        targetAudience: b.target_audience,
+        priceRange: b.price_range,
+        website: b.website,
+        city: b.city,
+        shipsTo: b.ships_to,
+        specialties: b.specialties,
+        certifications: b.certifications,
+        plan: b.plan,
+        aiSearches: b.ai_searches,
+        topQueries: b.top_queries,
+      })));
+    }
+    setLoading(false);
+  }
+
+  const update = (k: keyof typeof form, v: unknown) => setForm(f => ({ ...f, [k]: v }));
   const toggleStyle = (s: string) => {
     setForm(f => ({
       ...f,
@@ -36,29 +71,36 @@ export default function AdminPage() {
     }));
   };
 
-  const handleAdd = () => {
-    const newBrand: FashionBrand = {
-      id: `brand-${Date.now()}`,
+  const handleAdd = async () => {
+    setSaving(true);
+    setError('');
+    const { error } = await supabase.from('brands').insert({
       slug: slugify(form.name),
       name: form.name,
       style: form.style,
       description: form.description,
-      targetAudience: form.targetAudience,
-      priceRange: form.priceRange,
+      target_audience: form.targetAudience,
+      price_range: form.priceRange,
       website: form.website,
       city: form.city,
-      shipsTo: form.shipsTo,
+      ships_to: form.shipsTo,
       specialties: form.specialties.split('\n').filter(Boolean),
       certifications: form.certifications.split('\n').filter(Boolean),
       plan: form.plan,
-      aiSearches: Math.floor(Math.random() * 500) + 100,
-      topQueries: [],
-    };
-    setBrands(b => [newBrand, ...b]);
-    setSaved(true);
-    setShowForm(false);
-    setForm({ name: '', style: [], description: '', targetAudience: '', priceRange: '$$', website: '', city: '', shipsTo: '', specialties: '', certifications: '', plan: 'free' });
-    setTimeout(() => setSaved(false), 3000);
+      ai_searches: Math.floor(Math.random() * 500) + 100,
+      top_queries: [],
+    });
+
+    if (error) {
+      setError(error.message);
+    } else {
+      setSaved(true);
+      setShowForm(false);
+      setForm({ name: '', style: [], description: '', targetAudience: '', priceRange: '$$', website: '', city: '', shipsTo: '', specialties: '', certifications: '', plan: 'free' });
+      setTimeout(() => setSaved(false), 3000);
+      loadBrands();
+    }
+    setSaving(false);
   };
 
   const planColor: Record<string, string> = {
@@ -83,7 +125,7 @@ export default function AdminPage() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold mb-1">Brand Admin Panel</h1>
-            <p className="text-slate-400 text-sm">Add and manage fashion brands in the directory</p>
+            <p className="text-slate-400 text-sm">{brands.length} brands in database · Add and manage fashion brands</p>
           </div>
           <button onClick={() => setShowForm(true)}
             className="bg-purple-600 hover:bg-purple-500 text-white px-6 py-3 rounded-xl font-semibold transition-colors">
@@ -93,7 +135,13 @@ export default function AdminPage() {
 
         {saved && (
           <div className="bg-green-900/40 border border-green-700/50 rounded-xl px-5 py-3 text-green-300 text-sm mb-6">
-            ✓ Brand added to directory successfully
+            ✓ Brand saved to database successfully
+          </div>
+        )}
+
+        {error && (
+          <div className="bg-red-900/40 border border-red-700/50 rounded-xl px-5 py-3 text-red-300 text-sm mb-6">
+            ✗ Error: {error}
           </div>
         )}
 
@@ -110,17 +158,13 @@ export default function AdminPage() {
                 <Field label="Brand name *" value={form.name} onChange={v => update('name', v)} placeholder="e.g. Stella Nova" />
                 <Field label="Website URL *" value={form.website} onChange={v => update('website', v)} placeholder="https://stellanova.com" />
               </div>
-
               <Field label="Description *" value={form.description} onChange={v => update('description', v)} placeholder="What makes this brand unique? Materials, values, origin story..." textarea />
-
               <div className="grid md:grid-cols-2 gap-4">
                 <Field label="Target audience" value={form.targetAudience} onChange={v => update('targetAudience', v)} placeholder="e.g. Women 25-40, eco-conscious" />
                 <Field label="HQ City" value={form.city} onChange={v => update('city', v)} placeholder="e.g. Paris" />
               </div>
-
               <Field label="Ships to" value={form.shipsTo} onChange={v => update('shipsTo', v)} placeholder="e.g. Worldwide, US & Europe" />
 
-              {/* Style tags */}
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">Style / category *</label>
                 <div className="flex flex-wrap gap-2">
@@ -133,7 +177,6 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              {/* Price range */}
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">Price range</label>
                 <div className="flex gap-3">
@@ -146,11 +189,9 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              <Field label="Signature products (one per line)" value={form.specialties} onChange={v => update('specialties', v)} placeholder="The Classic Linen Blazer&#10;Summer 2025 Collection&#10;Recycled Denim Line" textarea />
+              <Field label="Signature products (one per line)" value={form.specialties} onChange={v => update('specialties', v)} placeholder="The Classic Linen Blazer&#10;Summer 2025 Collection" textarea />
+              <Field label="Certifications (one per line)" value={form.certifications} onChange={v => update('certifications', v)} placeholder="GOTS Certified&#10;B Corp" textarea />
 
-              <Field label="Certifications (one per line)" value={form.certifications} onChange={v => update('certifications', v)} placeholder="GOTS Certified&#10;B Corp&#10;Fair Trade" textarea />
-
-              {/* Plan */}
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">Plan</label>
                 <div className="flex gap-3">
@@ -168,19 +209,26 @@ export default function AdminPage() {
               <button onClick={() => setShowForm(false)} className="flex-1 border border-white/20 text-white py-3 rounded-xl font-semibold hover:border-white/40 transition-colors">
                 Cancel
               </button>
-              <button onClick={handleAdd} disabled={!form.name || !form.website || !form.description || form.style.length === 0}
+              <button onClick={handleAdd} disabled={!form.name || !form.website || !form.description || form.style.length === 0 || saving}
                 className="flex-1 bg-purple-600 hover:bg-purple-500 disabled:opacity-40 disabled:cursor-not-allowed text-white py-3 rounded-xl font-semibold transition-colors">
-                Add to directory
+                {saving ? 'Saving...' : 'Save to database'}
               </button>
             </div>
           </div>
         )}
 
         {/* Brand list */}
-        <div className="space-y-4">
-          {brands.map(brand => (
-            <div key={brand.id} className="bg-slate-900 border border-white/10 rounded-2xl p-5 flex items-center justify-between">
-              <div className="flex items-center gap-4">
+        {loading ? (
+          <div className="text-center py-20 text-slate-500">Loading brands from database...</div>
+        ) : brands.length === 0 ? (
+          <div className="text-center py-20 text-slate-500">
+            <p className="text-lg mb-2">No brands yet</p>
+            <p className="text-sm">Click &quot;+ Add brand&quot; to add your first fashion brand</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {brands.map(brand => (
+              <div key={brand.id} className="bg-slate-900 border border-white/10 rounded-2xl p-5 flex items-center justify-between">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
                     <span className="font-semibold">{brand.name}</span>
@@ -188,24 +236,20 @@ export default function AdminPage() {
                   </div>
                   <p className="text-sm text-slate-500">{brand.city} · {brand.website} · {brand.style.join(', ')}</p>
                 </div>
-              </div>
-              <div className="flex items-center gap-4 shrink-0">
-                <div className="text-right">
-                  <div className="text-sm font-semibold text-purple-300">{brand.aiSearches.toLocaleString()}</div>
-                  <div className="text-xs text-slate-500">AI searches/mo</div>
+                <div className="flex items-center gap-4 shrink-0">
+                  <div className="text-right">
+                    <div className="text-sm font-semibold text-purple-300">{brand.aiSearches?.toLocaleString()}</div>
+                    <div className="text-xs text-slate-500">AI searches/mo</div>
+                  </div>
+                  <Link href={`/biz/${brand.slug}`} target="_blank"
+                    className="text-xs border border-white/20 hover:border-white/40 px-3 py-2 rounded-lg transition-colors">
+                    View →
+                  </Link>
                 </div>
-                <Link href={`/biz/${brand.slug}`} target="_blank"
-                  className="text-xs border border-white/20 hover:border-white/40 px-3 py-2 rounded-lg transition-colors">
-                  View →
-                </Link>
               </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-8 bg-yellow-900/20 border border-yellow-700/30 rounded-xl p-4 text-sm text-yellow-300">
-          ⚠️ Brands added here are session-only until Supabase is connected. Refresh the page and they reset. Database integration coming next.
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </main>
   );

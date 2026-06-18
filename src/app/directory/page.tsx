@@ -1,7 +1,5 @@
 import Link from 'next/link';
-import { fashionBrands } from '@/lib/fashion-brands';
-
-const STYLES = ['All', 'Sustainable', 'Streetwear', 'Luxury', 'Activewear', 'Minimalist', 'Avant-garde'];
+import { supabase } from '@/lib/supabase';
 
 const planBadge: Record<string, { label: string; cls: string }> = {
   pro: { label: 'Pro', cls: 'bg-purple-900 text-purple-300' },
@@ -13,7 +11,17 @@ const priceLabel: Record<string, string> = {
   '$': 'Budget', '$$': 'Mid-range', '$$$': 'Premium', '$$$$': 'Luxury',
 };
 
-export default function DirectoryPage() {
+async function getBrands() {
+  const { data } = await supabase
+    .from('brands')
+    .select('*')
+    .order('ai_searches', { ascending: false });
+  return data ?? [];
+}
+
+export default async function DirectoryPage() {
+  const brands = await getBrands();
+
   return (
     <main className="min-h-screen bg-slate-950 text-white">
       <nav className="flex items-center justify-between px-8 py-5 border-b border-white/10">
@@ -35,56 +43,57 @@ export default function DirectoryPage() {
           </p>
         </div>
 
-        {/* Style filters */}
-        <div className="flex flex-wrap gap-2 mb-8">
-          {STYLES.map(s => (
-            <span key={s} className={`px-4 py-2 rounded-full text-sm cursor-pointer border transition-colors ${s === 'All' ? 'bg-purple-600 border-purple-500 text-white' : 'border-white/20 text-slate-400 hover:border-white/40 hover:text-white'}`}>
-              {s}
-            </span>
-          ))}
-        </div>
-
-        {/* Brand grid */}
-        <div className="grid md:grid-cols-2 gap-6">
-          {fashionBrands.map(brand => (
-            <Link key={brand.id} href={`/biz/${brand.slug}`}
-              className="bg-slate-900 border border-white/10 hover:border-purple-500/50 rounded-2xl p-6 transition-all group">
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <h2 className="text-lg font-bold group-hover:text-purple-300 transition-colors">{brand.name}</h2>
-                  <p className="text-sm text-slate-500">{brand.city} · {brand.shipsTo} shipping</p>
-                </div>
-                <span className={`text-xs px-2 py-1 rounded-full font-semibold ${planBadge[brand.plan].cls}`}>
-                  {planBadge[brand.plan].label}
-                </span>
-              </div>
-
-              <p className="text-sm text-slate-400 mb-4 line-clamp-2">{brand.description}</p>
-
-              <div className="flex flex-wrap gap-2 mb-4">
-                {brand.style.map(s => (
-                  <span key={s} className="text-xs bg-white/5 text-slate-300 px-2 py-1 rounded-lg">{s}</span>
-                ))}
-                <span className="text-xs bg-white/5 text-slate-300 px-2 py-1 rounded-lg">{priceLabel[brand.priceRange]}</span>
-              </div>
-
-              <div className="flex items-center justify-between pt-4 border-t border-white/5">
-                <div className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 bg-green-400 rounded-full"></span>
-                  <span className="text-xs text-slate-400">
-                    <span className="text-white font-semibold">{brand.aiSearches.toLocaleString()}</span> AI searches/mo
+        {brands.length === 0 ? (
+          <div className="text-center py-20 text-slate-500">
+            <p className="text-lg mb-2">No brands listed yet</p>
+            <p className="text-sm">Be the first to register your fashion brand</p>
+            <Link href="/dashboard" className="inline-block mt-6 bg-purple-600 hover:bg-purple-500 text-white px-6 py-3 rounded-xl font-semibold transition-colors">
+              Register free
+            </Link>
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-2 gap-6">
+            {brands.map((brand) => (
+              <Link key={brand.id} href={`/biz/${brand.slug}`}
+                className="bg-slate-900 border border-white/10 hover:border-purple-500/50 rounded-2xl p-6 transition-all group">
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <h2 className="text-lg font-bold group-hover:text-purple-300 transition-colors">{brand.name}</h2>
+                    <p className="text-sm text-slate-500">{brand.city} · {brand.ships_to} shipping</p>
+                  </div>
+                  <span className={`text-xs px-2 py-1 rounded-full font-semibold ${planBadge[brand.plan]?.cls ?? planBadge.free.cls}`}>
+                    {planBadge[brand.plan]?.label ?? 'Free'}
                   </span>
                 </div>
-                <span className="text-xs text-purple-400 group-hover:text-purple-300">View profile →</span>
-              </div>
-            </Link>
-          ))}
-        </div>
 
-        {/* CTA */}
+                <p className="text-sm text-slate-400 mb-4 line-clamp-2">{brand.description}</p>
+
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {brand.style?.map((s: string) => (
+                    <span key={s} className="text-xs bg-white/5 text-slate-300 px-2 py-1 rounded-lg">{s}</span>
+                  ))}
+                  {brand.price_range && (
+                    <span className="text-xs bg-white/5 text-slate-300 px-2 py-1 rounded-lg">{priceLabel[brand.price_range]}</span>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between pt-4 border-t border-white/5">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 bg-green-400 rounded-full"></span>
+                    <span className="text-xs text-slate-400">
+                      <span className="text-white font-semibold">{brand.ai_searches?.toLocaleString() ?? 0}</span> AI searches/mo
+                    </span>
+                  </div>
+                  <span className="text-xs text-purple-400 group-hover:text-purple-300">View profile →</span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+
         <div className="mt-12 bg-gradient-to-r from-purple-900/40 to-pink-900/40 border border-purple-700/30 rounded-2xl p-8 text-center">
           <h2 className="text-2xl font-bold mb-2">Get your brand listed</h2>
-          <p className="text-slate-400 mb-6">Join {fashionBrands.length}+ fashion brands appearing in AI search results</p>
+          <p className="text-slate-400 mb-6">Join {brands.length}+ fashion brands appearing in AI search results</p>
           <Link href="/dashboard" className="bg-purple-600 hover:bg-purple-500 text-white px-8 py-3 rounded-xl font-semibold transition-colors">
             Register free
           </Link>
