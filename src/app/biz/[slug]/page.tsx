@@ -120,6 +120,28 @@ export default function BizPage() {
           </div>
         </div>
 
+        {/* Product catalogue */}
+        {brand.products?.length > 0 && (
+          <div className="bg-slate-900 border border-white/10 rounded-2xl p-6 mb-6">
+            <div className="flex items-center gap-2 mb-4">
+              <h2 className="font-semibold">Product catalogue</h2>
+              <span className="text-xs bg-pink-900/50 text-pink-300 px-2 py-0.5 rounded-full">{brand.products.length} products</span>
+            </div>
+            <div className="grid sm:grid-cols-2 gap-3">
+              {brand.products.map((p: { name: string; category: string; description: string; price: string }, i: number) => (
+                <div key={i} className="bg-white/5 rounded-xl p-4">
+                  <div className="flex items-start justify-between gap-2 mb-1">
+                    <span className="font-medium text-sm">{p.name}</span>
+                    {p.price && <span className="text-xs text-purple-300 shrink-0">{p.price}</span>}
+                  </div>
+                  {p.category && <span className="text-xs text-slate-500 mb-2 block">{p.category}</span>}
+                  {p.description && <p className="text-xs text-slate-400 leading-relaxed">{p.description}</p>}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Top queries — blurred numbers, queries visible */}
         {brand.top_queries?.length > 0 && (
           <div className="bg-slate-900 border border-white/10 rounded-2xl p-6 mb-6">
