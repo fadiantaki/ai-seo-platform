@@ -14,6 +14,7 @@ interface Product {
 
 interface FormData {
   name: string;
+  email: string;
   description: string;
   address: string;
   city: string;
@@ -57,7 +58,7 @@ export default function DashboardPage() {
   const [businessType, setBusinessType] = useState<BusinessType>(null);
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<FormData>({
-    name: '', description: '', address: '', city: '', state: '',
+    name: '', email: '', description: '', address: '', city: '', state: '',
     phone: '', website: '', priceRange: '$$', specialties: '',
     cuisine: '', style: '', targetAudience: '', shipsTo: '',
   });
@@ -118,6 +119,13 @@ export default function DashboardPage() {
       return;
     }
     setGeneratedSlug(data.slug);
+    if (form.email) {
+      await fetch('/api/welcome-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: form.email, brandName: form.name, slug: data.slug }),
+      });
+    }
     setSubmitted(true);
     setSaving(false);
   }
@@ -238,6 +246,7 @@ export default function DashboardPage() {
             <p className="text-slate-400 mb-8">Tell AI search engines who you are</p>
             <div className="space-y-4">
               <Field label="Restaurant name *" value={form.name} onChange={v => update('name', v)} placeholder="e.g. Bella Napoli" />
+              <Field label="Your email *" value={form.email} onChange={v => update('email', v)} placeholder="hello@yourrestaurant.com" />
               <Field label="Cuisine type(s) *" value={form.cuisine} onChange={v => update('cuisine', v)} placeholder="e.g. Italian, Pizza, Pasta" />
               <Field label="Short description *" value={form.description} onChange={v => update('description', v)} placeholder="What makes your restaurant unique?" textarea />
               <PriceRange value={form.priceRange} onChange={v => update('priceRange', v)} />
@@ -252,6 +261,7 @@ export default function DashboardPage() {
             <p className="text-slate-400 mb-8">Tell AI search engines who you are</p>
             <div className="space-y-4">
               <Field label="Brand name *" value={form.name} onChange={v => update('name', v)} placeholder="e.g. Okhtein" />
+              <Field label="Your email *" value={form.email} onChange={v => update('email', v)} placeholder="hello@yourbrand.com" />
               <Field label="Style / category *" value={form.style} onChange={v => update('style', v)} placeholder="e.g. Sustainable, Luxury, Streetwear" />
               <Field label="Target audience *" value={form.targetAudience} onChange={v => update('targetAudience', v)} placeholder="e.g. Women 25-40, eco-conscious" />
               <Field label="Brand description *" value={form.description} onChange={v => update('description', v)} placeholder="What makes your brand unique? Story, materials, values..." textarea />
