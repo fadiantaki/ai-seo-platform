@@ -3,25 +3,6 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 
-const RESTAURANT_CUISINES = [
-  'Egyptian', 'Seafood', 'Italian', 'Japanese', 'Lebanese', 'Turkish', 'French',
-  'American', 'Asian', 'Mediterranean', 'Indian', 'Chinese', 'Mexican', 'Thai',
-  'Bar', 'Cafe', 'Brunch', 'Bakery', 'Desserts', 'Street Food', 'Grills',
-  'International', 'Nubian', 'Siwan', 'Moroccan', 'Syrian', 'Greek', 'Australian',
-  'Fast Food', 'Healthy', 'Vegan', 'Steakhouse', 'Rooftop', 'Lounge',
-  'Egyptian Fast Food', 'Egyptian Street Food', 'Asian Fusion', 'Pan-Asian',
-  'Fast Casual', 'Gastropub', 'Spanish', 'Vietnamese', 'Wine Bar', 'Contemporary',
-  'BBQ', 'Burgers', 'Sandwiches', 'Ice Cream', 'Patisserie', 'Fusion',
-  'Diner', 'Pub', 'Ottoman', 'North African', 'Levantine', 'Continental',
-  'Wok', 'Latin', 'Organic', 'Vegan Friendly', 'Casual', 'Cultural',
-  'Egyptian Seafood', 'Egyptian Sweets', 'European', 'British',
-];
-
-function isRestaurant(brand: any) {
-  if (!brand.style) return false;
-  return brand.style.some((s: string) => RESTAURANT_CUISINES.includes(s));
-}
-
 const priceLabel: Record<string, string> = {
   '$': 'Budget', '$$': 'Mid-range', '$$$': 'Premium', '$$$$': 'Luxury',
 };
@@ -37,8 +18,8 @@ export default function DirectoryPage() {
       .then(({ data }) => setBrands(data ?? []));
   }, []);
 
-  const fashionBrands = brands.filter(b => !isRestaurant(b));
-  const restaurants = brands.filter(b => isRestaurant(b));
+  const fashionBrands = brands.filter(b => b.business_type !== 'restaurant');
+  const restaurants = brands.filter(b => b.business_type === 'restaurant');
 
   const activeList = tab === 'fashion' ? fashionBrands : restaurants;
   const local = activeList.filter(b => b.is_local);
