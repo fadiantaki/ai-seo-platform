@@ -22,7 +22,7 @@ export default function BizPage() {
 
   if (!brand) return null;
 
-  const embedCode = `<script src="https://ai-seo-platform-dun.vercel.app/api/embed/${brand.slug}" async></script>`;
+  const embedCode = `<script src="https://beaivisible.io/api/embed/${brand.slug}" async></script>`;
 
   function copyCode() {
     navigator.clipboard.writeText(embedCode);

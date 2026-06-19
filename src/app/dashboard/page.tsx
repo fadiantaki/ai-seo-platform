@@ -70,7 +70,7 @@ export default function DashboardPage() {
   const update = (k: keyof FormData, v: string) => setForm(f => ({ ...f, [k]: v }));
   const totalSteps = 4;
 
-  const embedCode = `<script src="https://ai-seo-platform-dun.vercel.app/api/embed/${generatedSlug}" async></script>`;
+  const embedCode = `<script src="https://beaivisible.io/api/embed/${generatedSlug}" async></script>`;
 
   function slugify(name: string) {
     return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') + '-' + Date.now();

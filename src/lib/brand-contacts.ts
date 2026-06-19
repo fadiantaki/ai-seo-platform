@@ -113,10 +113,10 @@ We've added ${brandName} to AIVisible — a free tool that helps fashion brands 
 
 When someone asks an AI "best fashion brands in Egypt" or "where to buy [your style] in Cairo", your brand now shows up.
 
-👉 See your profile: https://ai-seo-platform-dun.vercel.app/biz/${brandSlug}
+👉 See your profile: https://beaivisible.io/biz/${brandSlug}
 
 To get your free embed code (one script tag for your website that activates AI search optimization):
-https://ai-seo-platform-dun.vercel.app/dashboard
+https://beaivisible.io/dashboard
 
 It's completely free. Takes 2 minutes. No tech knowledge needed.
 
