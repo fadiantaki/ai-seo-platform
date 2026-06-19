@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 
+export const revalidate = 0;
+
 const planBadge: Record<string, { label: string; cls: string }> = {
   pro: { label: 'Pro', cls: 'bg-purple-900 text-purple-300' },
   starter: { label: 'Starter', cls: 'bg-blue-900 text-blue-300' },
@@ -12,11 +14,19 @@ const priceLabel: Record<string, string> = {
 };
 
 async function getBrands() {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('brands')
     .select('*')
     .order('is_local', { ascending: false })
     .order('ai_searches', { ascending: false });
+  if (error) {
+    // Fallback if is_local column not yet available
+    const { data: fallback } = await supabase
+      .from('brands')
+      .select('*')
+      .order('ai_searches', { ascending: false });
+    return fallback ?? [];
+  }
   return data ?? [];
 }
 
