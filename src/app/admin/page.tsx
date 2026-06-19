@@ -117,6 +117,7 @@ export default function AdminPage() {
         </Link>
         <div className="flex items-center gap-4">
           <span className="text-xs bg-red-900 text-red-300 px-2 py-1 rounded-full font-semibold">Admin Only</span>
+          <Link href="/outreach" className="text-sm text-slate-400 hover:text-white transition-colors">Outreach</Link>
           <Link href="/directory" className="text-sm text-slate-400 hover:text-white transition-colors">View Directory</Link>
         </div>
       </nav>

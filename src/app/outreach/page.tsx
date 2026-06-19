@@ -1,0 +1,221 @@
+'use client';
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { supabase } from '@/lib/supabase';
+import { brandContacts, instagramDMTemplate } from '@/lib/brand-contacts';
+
+interface BrandRow {
+  id: string;
+  slug: string;
+  name: string;
+  embed_installed: boolean;
+  embed_last_seen: string | null;
+  embed_domain: string | null;
+  outreach_sent: boolean;
+  outreach_sent_at: string | null;
+  plan: string;
+}
+
+export default function OutreachPage() {
+  const [brands, setBrands] = useState<BrandRow[]>([]);
+  const [filter, setFilter] = useState<'all' | 'pending' | 'sent' | 'installed'>('all');
+  const [dmBrand, setDmBrand] = useState<{ name: string; slug: string; instagram: string } | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    supabase.from('brands')
+      .select('id, slug, name, embed_installed, embed_last_seen, embed_domain, outreach_sent, outreach_sent_at, plan')
+      .order('name')
+      .then(({ data }) => setBrands(data || []));
+  }, []);
+
+  async function markOutreachSent(brandId: string) {
+    await supabase.from('brands').update({
+      outreach_sent: true,
+      outreach_sent_at: new Date().toISOString(),
+    }).eq('id', brandId);
+    setBrands(prev => prev.map(b => b.id === brandId
+      ? { ...b, outreach_sent: true, outreach_sent_at: new Date().toISOString() }
+      : b
+    ));
+  }
+
+  function copyDM(brandName: string, brandSlug: string) {
+    const text = instagramDMTemplate(brandName, brandSlug);
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  const contactMap = Object.fromEntries(brandContacts.map(c => [c.slug, c]));
+
+  const filtered = brands.filter(b => {
+    if (filter === 'installed') return b.embed_installed;
+    if (filter === 'sent') return b.outreach_sent && !b.embed_installed;
+    if (filter === 'pending') return !b.outreach_sent;
+    return true;
+  });
+
+  const stats = {
+    total: brands.length,
+    installed: brands.filter(b => b.embed_installed).length,
+    sent: brands.filter(b => b.outreach_sent).length,
+    pending: brands.filter(b => !b.outreach_sent).length,
+  };
+
+  return (
+    <main className="min-h-screen bg-slate-950 text-white">
+      <nav className="flex items-center justify-between px-8 py-5 border-b border-white/10">
+        <Link href="/" className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+          AIVisible
+        </Link>
+        <div className="flex gap-4 text-sm text-slate-400">
+          <Link href="/admin" className="hover:text-white">Admin</Link>
+          <Link href="/directory" className="hover:text-white">Directory</Link>
+        </div>
+      </nav>
+
+      <div className="max-w-6xl mx-auto px-8 py-10">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold mb-1">Outreach Tracker</h1>
+          <p className="text-slate-400">Track Instagram DMs sent to brands and monitor embed installs.</p>
+        </div>
+
+        {/* Stats */}
+        <div className="grid grid-cols-4 gap-4 mb-8">
+          {[
+            { label: 'Total brands', value: stats.total, color: 'text-white' },
+            { label: 'DMs pending', value: stats.pending, color: 'text-yellow-400' },
+            { label: 'DMs sent', value: stats.sent, color: 'text-blue-400' },
+            { label: 'Embed installed', value: stats.installed, color: 'text-green-400' },
+          ].map(s => (
+            <div key={s.label} className="bg-white/5 border border-white/10 rounded-xl p-4">
+              <div className={`text-3xl font-black mb-1 ${s.color}`}>{s.value}</div>
+              <div className="text-slate-400 text-sm">{s.label}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Filter tabs */}
+        <div className="flex gap-2 mb-6">
+          {(['all', 'pending', 'sent', 'installed'] as const).map(f => (
+            <button key={f} onClick={() => setFilter(f)}
+              className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors capitalize ${filter === f ? 'bg-purple-600 text-white' : 'bg-white/5 text-slate-400 hover:text-white'}`}>
+              {f}
+            </button>
+          ))}
+        </div>
+
+        {/* DM Template modal */}
+        {dmBrand && (
+          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+            <div className="bg-slate-900 border border-white/10 rounded-2xl p-6 max-w-lg w-full">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="font-bold text-lg">DM Template — {dmBrand.name}</h2>
+                <button onClick={() => setDmBrand(null)} className="text-slate-400 hover:text-white text-xl">×</button>
+              </div>
+              <div className="text-xs text-purple-300 mb-2">Send to: {dmBrand.instagram}</div>
+              <pre className="bg-black/40 rounded-xl p-4 text-sm text-slate-300 whitespace-pre-wrap mb-4 leading-relaxed">
+                {instagramDMTemplate(dmBrand.name, dmBrand.slug)}
+              </pre>
+              <div className="flex gap-3">
+                <button onClick={() => copyDM(dmBrand.name, dmBrand.slug)}
+                  className="flex-1 bg-purple-600 hover:bg-purple-500 text-white py-2 rounded-lg font-medium text-sm transition-colors">
+                  {copied ? '✓ Copied!' : 'Copy message'}
+                </button>
+                <button
+                  onClick={async () => {
+                    const brand = brands.find(b => b.slug === dmBrand.slug);
+                    if (brand) { await markOutreachSent(brand.id); }
+                    setDmBrand(null);
+                  }}
+                  className="flex-1 bg-green-700 hover:bg-green-600 text-white py-2 rounded-lg font-medium text-sm transition-colors">
+                  Mark as sent
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Brands table */}
+        <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-white/10 text-slate-400">
+                <th className="text-left px-4 py-3 font-medium">Brand</th>
+                <th className="text-left px-4 py-3 font-medium">Instagram</th>
+                <th className="text-left px-4 py-3 font-medium">Outreach</th>
+                <th className="text-left px-4 py-3 font-medium">Embed</th>
+                <th className="text-left px-4 py-3 font-medium">Domain</th>
+                <th className="text-left px-4 py-3 font-medium">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map(brand => {
+                const contact = contactMap[brand.slug];
+                return (
+                  <tr key={brand.id} className="border-b border-white/5 hover:bg-white/3">
+                    <td className="px-4 py-3">
+                      <div className="font-medium">{brand.name}</div>
+                      {contact?.type === 'local' && (
+                        <div className="text-xs text-purple-400">Local brand</div>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-slate-400">
+                      {contact?.instagram || '—'}
+                    </td>
+                    <td className="px-4 py-3">
+                      {brand.outreach_sent ? (
+                        <span className="text-blue-400 text-xs">
+                          ✓ Sent {brand.outreach_sent_at ? new Date(brand.outreach_sent_at).toLocaleDateString() : ''}
+                        </span>
+                      ) : (
+                        <span className="text-yellow-400 text-xs">⏳ Pending</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {brand.embed_installed ? (
+                        <span className="text-green-400 text-xs">
+                          ✓ Installed {brand.embed_last_seen ? new Date(brand.embed_last_seen).toLocaleDateString() : ''}
+                        </span>
+                      ) : (
+                        <span className="text-slate-500 text-xs">Not installed</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-slate-400 text-xs">
+                      {brand.embed_domain || '—'}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex gap-2">
+                        {contact && (
+                          <button
+                            onClick={() => setDmBrand({ name: brand.name, slug: brand.slug, instagram: contact.instagram })}
+                            className="text-xs bg-purple-600/30 hover:bg-purple-600/60 text-purple-300 px-2 py-1 rounded transition-colors">
+                            View DM
+                          </button>
+                        )}
+                        {!brand.outreach_sent && (
+                          <button onClick={() => markOutreachSent(brand.id)}
+                            className="text-xs bg-blue-600/30 hover:bg-blue-600/60 text-blue-300 px-2 py-1 rounded transition-colors">
+                            Mark sent
+                          </button>
+                        )}
+                        <Link href={`/biz/${brand.slug}`}
+                          className="text-xs bg-white/5 hover:bg-white/10 text-slate-400 px-2 py-1 rounded transition-colors">
+                          Profile
+                        </Link>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          {filtered.length === 0 && (
+            <div className="text-center py-12 text-slate-500">No brands in this filter.</div>
+          )}
+        </div>
+      </div>
+    </main>
+  );
+}
