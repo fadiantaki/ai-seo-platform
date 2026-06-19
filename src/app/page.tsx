@@ -41,14 +41,13 @@ export default function Home() {
         </p>
         <p className="text-slate-500 text-sm mb-8">Choose your business type to get started</p>
         <div className="grid sm:grid-cols-2 gap-4 max-w-2xl mx-auto mb-10">
-          <Link href="/dashboard?type=restaurant"
-            className="group bg-white/5 hover:bg-purple-900/40 border border-white/10 hover:border-purple-500 rounded-2xl p-6 text-left transition-all">
+          <div className="relative bg-white/5 border border-white/10 rounded-2xl p-6 text-left opacity-50 cursor-not-allowed">
             <div className="text-3xl mb-3">🍽️</div>
-            <h3 className="font-bold text-lg mb-1 group-hover:text-purple-300 transition-colors">Restaurant</h3>
+            <h3 className="font-bold text-lg mb-1">Restaurant</h3>
             <p className="text-slate-400 text-sm">Appear when people ask AI for the best places to eat near them</p>
             <p className="text-xs text-slate-500 mt-3 italic">&ldquo;best Italian near me&rdquo;, &ldquo;top sushi spots downtown&rdquo;</p>
-            <div className="mt-4 text-purple-400 text-sm font-semibold group-hover:text-purple-300 transition-colors">Get started free →</div>
-          </Link>
+            <div className="mt-4 text-slate-500 text-sm font-semibold">Coming soon</div>
+          </div>
           <Link href="/dashboard?type=fashion"
             className="group bg-white/5 hover:bg-pink-900/40 border border-white/10 hover:border-pink-500 rounded-2xl p-6 text-left transition-all">
             <div className="text-3xl mb-3">👗</div>
