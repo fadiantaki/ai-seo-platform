@@ -17,9 +17,6 @@ export default async function BizPage({ params }: { params: Promise<{ slug: stri
 
   if (!brand) notFound();
 
-  const embedInstalled = brand.embed_installed ?? false;
-  const llmsUrl = `https://ai-seo-platform-dun.vercel.app/api/llms/${brand.id}`;
-
   return (
     <main className="min-h-screen bg-slate-950 text-white">
       <nav className="flex items-center justify-between px-8 py-5 border-b border-white/10">
@@ -32,20 +29,18 @@ export default async function BizPage({ params }: { params: Promise<{ slug: stri
       </nav>
 
       <div className="max-w-4xl mx-auto px-8 py-12">
-        {/* Header */}
+
+        {/* Header — fully public */}
         <div className="mb-10">
           <div className="flex items-center gap-3 mb-3 flex-wrap">
             <h1 className="text-4xl font-bold">{brand.name}</h1>
-            <span className={`text-xs px-3 py-1 rounded-full font-semibold ${brand.plan === 'pro' ? 'bg-purple-900 text-purple-300' : brand.plan === 'starter' ? 'bg-blue-900 text-blue-300' : 'bg-white/10 text-slate-400'}`}>
-              {brand.plan.charAt(0).toUpperCase() + brand.plan.slice(1)}
+            <span className="text-xs px-3 py-1 rounded-full font-semibold bg-green-900/50 text-green-300">
+              ✓ Listed on AIVisible
             </span>
-            {embedInstalled ? (
-              <span className="text-xs px-3 py-1 rounded-full font-semibold bg-green-900 text-green-300">✓ AI-optimized</span>
-            ) : (
-              <span className="text-xs px-3 py-1 rounded-full font-semibold bg-red-900/50 text-red-300">⚠ Script not installed</span>
-            )}
           </div>
-          <p className="text-slate-400 mb-4">{brand.city} · Ships to {brand.ships_to} · {priceLabel[brand.price_range] ?? brand.price_range}</p>
+          <p className="text-slate-400 mb-4">
+            {brand.city} · Ships to {brand.ships_to} · {priceLabel[brand.price_range] ?? brand.price_range}
+          </p>
           <div className="flex flex-wrap gap-2">
             {brand.style?.map((s: string) => (
               <span key={s} className="text-sm bg-purple-900/30 text-purple-300 px-3 py-1 rounded-full">{s}</span>
@@ -53,62 +48,51 @@ export default async function BizPage({ params }: { params: Promise<{ slug: stri
           </div>
         </div>
 
-        {/* Script not installed CTA */}
-        {!embedInstalled && (
-          <div className="bg-orange-900/20 border border-orange-700/40 rounded-2xl p-5 mb-8 flex items-center justify-between gap-4">
-            <div>
-              <p className="font-semibold text-orange-300 mb-1">Embed script not installed</p>
-              <p className="text-sm text-slate-400">This brand is listed but not yet AI-optimized. Install the script to start appearing in AI search results.</p>
-            </div>
-            <Link href="/dashboard" className="shrink-0 bg-orange-600 hover:bg-orange-500 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors">
-              Get script
-            </Link>
-          </div>
-        )}
-
-        <div className="grid md:grid-cols-3 gap-6 mb-10">
-          <div className="md:col-span-2 grid grid-cols-2 gap-4">
-            <div className="bg-slate-900 border border-white/10 rounded-2xl p-5">
-              <div className="text-3xl font-black text-purple-400 mb-1">{brand.ai_searches?.toLocaleString() ?? 0}</div>
-              <div className="text-sm text-slate-400">AI searches / month</div>
-            </div>
-            <div className="bg-slate-900 border border-white/10 rounded-2xl p-5">
-              <div className="text-3xl font-black text-green-400 mb-1">{brand.top_queries?.length ?? 0}</div>
-              <div className="text-sm text-slate-400">Active AI queries</div>
-            </div>
-            <div className="bg-slate-900 border border-white/10 rounded-2xl p-5">
-              <div className="text-3xl font-black text-pink-400 mb-1">{brand.certifications?.length ?? 0}</div>
-              <div className="text-sm text-slate-400">Certifications</div>
-            </div>
-            <div className="bg-slate-900 border border-white/10 rounded-2xl p-5">
-              <div className="text-3xl font-black text-orange-400 mb-1">{brand.specialties?.length ?? 0}</div>
-              <div className="text-sm text-slate-400">Signature products</div>
-            </div>
+        {/* Private stats — blurred with claim CTA */}
+        <div className="relative mb-10">
+          {/* Blurred stats behind the overlay */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 blur-sm select-none pointer-events-none" aria-hidden>
+            {[
+              { value: '2,400', label: 'AI searches / mo', color: 'text-purple-400' },
+              { value: '94%', label: 'Visibility score', color: 'text-green-400' },
+              { value: '12', label: 'Active AI queries', color: 'text-pink-400' },
+              { value: '#3', label: 'Category rank', color: 'text-orange-400' },
+            ].map(s => (
+              <div key={s.label} className="bg-slate-900 border border-white/10 rounded-2xl p-5">
+                <div className={`text-3xl font-black mb-1 ${s.color}`}>{s.value}</div>
+                <div className="text-sm text-slate-400">{s.label}</div>
+              </div>
+            ))}
           </div>
 
-          <div className="bg-slate-900 border border-white/10 rounded-2xl p-5">
-            <h3 className="font-semibold mb-3 text-sm text-slate-400 uppercase tracking-wider">Top AI queries</h3>
-            {brand.top_queries?.length > 0 ? (
-              <ul className="space-y-2">
-                {brand.top_queries.map((q: string) => (
-                  <li key={q} className="text-sm text-slate-300 flex items-start gap-2">
-                    <span className="text-purple-400 mt-0.5">→</span> {q}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-sm text-slate-500">No queries tracked yet. Install the embed script to start tracking.</p>
-            )}
+          {/* Claim overlay */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="bg-slate-950/90 backdrop-blur-sm border border-purple-700/40 rounded-2xl px-8 py-6 text-center max-w-sm mx-4">
+              <div className="text-2xl mb-2">🔒</div>
+              <h3 className="font-bold mb-1 text-white">This is your brand?</h3>
+              <p className="text-slate-400 text-sm mb-4">
+                Claim it to see your AI search stats, visibility score, and which queries drive traffic to you.
+              </p>
+              <Link
+                href={`/dashboard?claim=${brand.slug}`}
+                className="block bg-purple-600 hover:bg-purple-500 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors">
+                Claim {brand.name} — it&apos;s free
+              </Link>
+            </div>
           </div>
         </div>
 
+        {/* About — public */}
         <div className="bg-slate-900 border border-white/10 rounded-2xl p-6 mb-6">
           <h2 className="font-semibold mb-3">About</h2>
           <p className="text-slate-400 text-sm leading-relaxed">{brand.description}</p>
-          {brand.target_audience && <p className="text-slate-500 text-sm mt-3">Target audience: {brand.target_audience}</p>}
+          {brand.target_audience && (
+            <p className="text-slate-500 text-sm mt-3">Target audience: {brand.target_audience}</p>
+          )}
         </div>
 
         <div className="grid md:grid-cols-2 gap-6 mb-6">
+          {/* Specialties — public */}
           {brand.specialties?.length > 0 && (
             <div className="bg-slate-900 border border-white/10 rounded-2xl p-6">
               <h2 className="font-semibold mb-3">Signature products</h2>
@@ -122,6 +106,7 @@ export default async function BizPage({ params }: { params: Promise<{ slug: stri
             </div>
           )}
 
+          {/* Certifications — public */}
           <div className="bg-slate-900 border border-white/10 rounded-2xl p-6">
             <h2 className="font-semibold mb-3">Certifications & values</h2>
             {brand.certifications?.length > 0 ? (
@@ -146,27 +131,55 @@ export default async function BizPage({ params }: { params: Promise<{ slug: stri
           </div>
         </div>
 
+        {/* Top queries — blurred */}
+        <div className="relative mb-6">
+          <div className="bg-slate-900 border border-white/10 rounded-2xl p-6 blur-sm select-none pointer-events-none" aria-hidden>
+            <h2 className="font-semibold mb-3">Top AI queries</h2>
+            <ul className="space-y-2">
+              {['best fashion brand in Cairo', 'luxury Egyptian designer', 'where to buy local Egyptian fashion'].map(q => (
+                <li key={q} className="text-sm text-slate-300 flex items-start gap-2">
+                  <span className="text-purple-400 mt-0.5">→</span> {q}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="bg-slate-950/80 backdrop-blur-sm border border-white/10 rounded-xl px-5 py-3 text-center">
+              <p className="text-sm text-slate-300 font-medium">🔒 Visible to brand owner only</p>
+              <Link href={`/dashboard?claim=${brand.slug}`} className="text-xs text-purple-400 hover:text-purple-300 mt-1 block">
+                Claim your brand →
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        {/* AI data endpoint — public, this is a selling point to show */}
         <div className="bg-slate-900 border border-white/10 rounded-2xl p-6 mb-6">
           <div className="flex items-center gap-2 mb-1">
             <h2 className="font-semibold">AI data endpoint</h2>
-            <span className="text-xs bg-blue-900 text-blue-300 px-2 py-0.5 rounded-full">AI reads this</span>
+            <span className="text-xs bg-blue-900 text-blue-300 px-2 py-0.5 rounded-full">Claude & ChatGPT read this</span>
           </div>
-          <p className="text-sm text-slate-500 mb-3">This URL is what Claude, ChatGPT and Perplexity read about this brand</p>
-          <a href={llmsUrl} target="_blank" rel="noopener noreferrer"
+          <p className="text-sm text-slate-500 mb-3">
+            This is the structured data file that AI models read when someone asks about {brand.name}
+          </p>
+          <a href={`https://ai-seo-platform-dun.vercel.app/api/llms/${brand.slug}`}
+            target="_blank" rel="noopener noreferrer"
             className="text-sm text-green-400 hover:text-green-300 font-mono break-all transition-colors">
-            {llmsUrl}
+            {`https://ai-seo-platform-dun.vercel.app/api/llms/${brand.slug}`}
           </a>
         </div>
 
-        {brand.plan === 'free' && (
-          <div className="bg-gradient-to-r from-purple-900/40 to-pink-900/40 border border-purple-700/30 rounded-2xl p-6 text-center">
-            <h3 className="font-bold mb-2">Unlock full AI visibility</h3>
-            <p className="text-slate-400 text-sm mb-4">Upgrade to Starter to get analytics, priority ranking, and monthly AI reports</p>
-            <Link href="/dashboard" className="bg-purple-600 hover:bg-purple-500 text-white px-6 py-3 rounded-xl font-semibold text-sm transition-colors">
-              Upgrade to Starter — $29/mo
-            </Link>
-          </div>
-        )}
+        {/* Bottom CTA */}
+        <div className="bg-gradient-to-r from-purple-900/40 to-pink-900/40 border border-purple-700/30 rounded-2xl p-6 text-center">
+          <h3 className="font-bold mb-2">Is this your brand?</h3>
+          <p className="text-slate-400 text-sm mb-4">
+            Claim your free profile to get your embed script, see your AI search analytics, and take control of how AI describes your brand.
+          </p>
+          <Link href={`/dashboard?claim=${brand.slug}`}
+            className="inline-block bg-purple-600 hover:bg-purple-500 text-white px-6 py-3 rounded-xl font-semibold text-sm transition-colors">
+            Claim {brand.name} free →
+          </Link>
+        </div>
       </div>
     </main>
   );
