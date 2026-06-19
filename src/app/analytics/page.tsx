@@ -41,13 +41,19 @@ export default function AnalyticsPage() {
       </nav>
 
       <div className="max-w-5xl mx-auto px-8 py-12">
+        {/* Sample data banner */}
+        <div className="flex items-center gap-2 bg-amber-900/20 border border-amber-700/30 rounded-xl px-4 py-2.5 mb-8 text-sm text-amber-300">
+          <span>👁️</span>
+          <span>This is a sample dashboard. Numbers are illustrative — your real data activates when you register and install the embed script.</span>
+        </div>
+
         <div className="flex items-center justify-between mb-10">
           <div>
-            <div className="text-sm text-purple-400 font-semibold mb-1 uppercase tracking-wider">Analytics Dashboard</div>
+            <div className="text-sm text-purple-400 font-semibold mb-1 uppercase tracking-wider">Analytics Dashboard — Sample</div>
             <h1 className="text-3xl font-bold">{brand.name}</h1>
             <p className="text-slate-400 text-sm mt-1">AI search performance · June 2026</p>
           </div>
-          <span className="bg-purple-900 text-purple-300 text-xs px-3 py-1 rounded-full font-semibold">Pro Plan</span>
+          <span className="bg-purple-900 text-purple-300 text-xs px-3 py-1 rounded-full font-semibold">Starter Plan</span>
         </div>
 
         {/* KPI cards */}
@@ -153,13 +159,23 @@ export default function AnalyticsPage() {
           </div>
         </div>
 
-        {/* Upgrade prompt */}
-        <div className="bg-gradient-to-r from-purple-900/40 to-pink-900/40 border border-purple-700/30 rounded-2xl p-6 text-center">
-          <h3 className="font-bold mb-2">This is what your dashboard looks like on Pro</h3>
-          <p className="text-slate-400 text-sm mb-4">Real analytics, competitor tracking, and AI mention alerts — all live when you register</p>
-          <Link href="/dashboard" className="bg-purple-600 hover:bg-purple-500 text-white px-8 py-3 rounded-xl font-semibold transition-colors">
-            Register your fashion brand
-          </Link>
+        {/* Upgrade CTA */}
+        <div className="bg-gradient-to-r from-purple-900/40 to-pink-900/40 border border-purple-700/30 rounded-2xl p-8 text-center">
+          <div className="text-3xl mb-3">📊</div>
+          <h3 className="text-xl font-bold mb-2">Want to see your brand&apos;s real numbers?</h3>
+          <p className="text-slate-400 text-sm mb-6 max-w-md mx-auto">
+            This sample gives you a preview. Once you register and install the embed script, your dashboard shows live AI search data — queries, trends, and competitor comparisons for your brand.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Link href="/dashboard"
+              className="bg-white text-slate-900 font-semibold px-6 py-3 rounded-xl hover:bg-slate-100 transition-colors">
+              Register free — get your embed script
+            </Link>
+            <Link href="/pricing"
+              className="bg-purple-600 hover:bg-purple-500 text-white font-semibold px-6 py-3 rounded-xl transition-colors">
+              Check analytics — upgrade to Starter $29/mo
+            </Link>
+          </div>
         </div>
       </div>
     </main>
