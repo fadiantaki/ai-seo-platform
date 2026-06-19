@@ -16,18 +16,26 @@ interface BrandRow {
   plan: string;
 }
 
+const ADMIN_USER = 'aivisible';
+const ADMIN_PASS = 'AIVisible2025!';
+
 export default function OutreachPage() {
+  const [authed, setAuthed] = useState(false);
+  const [loginUser, setLoginUser] = useState('');
+  const [loginPass, setLoginPass] = useState('');
+  const [loginError, setLoginError] = useState('');
   const [brands, setBrands] = useState<BrandRow[]>([]);
   const [filter, setFilter] = useState<'all' | 'pending' | 'sent' | 'installed'>('all');
   const [dmBrand, setDmBrand] = useState<{ name: string; slug: string; instagram: string } | null>(null);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
+    if (!authed) return;
     supabase.from('brands')
       .select('id, slug, name, embed_installed, embed_last_seen, embed_domain, outreach_sent, outreach_sent_at, plan')
       .order('name')
       .then(({ data }) => setBrands(data || []));
-  }, []);
+  }, [authed]);
 
   async function markOutreachSent(brandId: string) {
     await supabase.from('brands').update({
@@ -62,6 +70,33 @@ export default function OutreachPage() {
     sent: brands.filter(b => b.outreach_sent).length,
     pending: brands.filter(b => !b.outreach_sent).length,
   };
+
+  if (!authed) {
+    return (
+      <main className="min-h-screen bg-slate-950 text-white flex items-center justify-center">
+        <div className="w-full max-w-sm bg-slate-900 border border-white/10 rounded-2xl p-8">
+          <h1 className="text-2xl font-bold mb-2 text-center">Admin Login</h1>
+          <p className="text-slate-500 text-sm text-center mb-8">AIVisible internal dashboard</p>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm text-slate-400 mb-1">Username</label>
+              <input className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500" value={loginUser} onChange={e => setLoginUser(e.target.value)} placeholder="Username" />
+            </div>
+            <div>
+              <label className="block text-sm text-slate-400 mb-1">Password</label>
+              <input type="password" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500" value={loginPass} onChange={e => setLoginPass(e.target.value)} placeholder="Password"
+                onKeyDown={e => { if (e.key === 'Enter') { if (loginUser === ADMIN_USER && loginPass === ADMIN_PASS) { setAuthed(true); } else { setLoginError('Invalid username or password'); } } }} />
+            </div>
+            {loginError && <p className="text-red-400 text-sm">{loginError}</p>}
+            <button onClick={() => { if (loginUser === ADMIN_USER && loginPass === ADMIN_PASS) { setAuthed(true); } else { setLoginError('Invalid username or password'); } }}
+              className="w-full bg-purple-600 hover:bg-purple-500 text-white py-3 rounded-xl font-semibold transition-colors">
+              Login
+            </button>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-slate-950 text-white">
