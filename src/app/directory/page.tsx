@@ -56,14 +56,9 @@ export default async function DirectoryPage() {
             {brands.map((brand) => (
               <Link key={brand.id} href={`/biz/${brand.slug}`}
                 className="bg-slate-900 border border-white/10 hover:border-purple-500/50 rounded-2xl p-6 transition-all group">
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <h2 className="text-lg font-bold group-hover:text-purple-300 transition-colors">{brand.name}</h2>
-                    <p className="text-sm text-slate-500">{brand.city} · {brand.ships_to} shipping</p>
-                  </div>
-                  <span className={`text-xs px-2 py-1 rounded-full font-semibold ${planBadge[brand.plan]?.cls ?? planBadge.free.cls}`}>
-                    {planBadge[brand.plan]?.label ?? 'Free'}
-                  </span>
+                <div className="mb-3">
+                  <h2 className="text-lg font-bold group-hover:text-purple-300 transition-colors">{brand.name}</h2>
+                  <p className="text-sm text-slate-500">{brand.city} · {brand.ships_to} shipping</p>
                 </div>
 
                 <p className="text-sm text-slate-400 mb-4 line-clamp-2">{brand.description}</p>
@@ -77,8 +72,7 @@ export default async function DirectoryPage() {
                   )}
                 </div>
 
-                <div className="flex items-center justify-between pt-4 border-t border-white/5">
-                  <span className="text-xs bg-green-900/40 text-green-400 px-2 py-0.5 rounded-full">✓ AI-indexed</span>
+                <div className="flex items-center justify-end pt-4 border-t border-white/5">
                   <span className="text-xs text-purple-400 group-hover:text-purple-300">View profile →</span>
                 </div>
               </Link>

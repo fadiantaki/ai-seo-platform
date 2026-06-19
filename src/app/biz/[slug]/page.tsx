@@ -1,21 +1,34 @@
+'use client';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { notFound } from 'next/navigation';
+import { useParams } from 'next/navigation';
 
 const priceLabel: Record<string, string> = {
   '$': 'Budget-friendly', '$$': 'Mid-range', '$$$': 'Premium', '$$$$': 'Luxury',
 };
 
-export default async function BizPage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params;
+export default function BizPage() {
+  const params = useParams();
+  const slug = params.slug as string;
+  const [brand, setBrand] = useState<Record<string, any> | null>(null);
+  const [copied, setCopied] = useState(false);
 
-  const { data: brand } = await supabase
-    .from('brands')
-    .select('*')
-    .eq('slug', slug)
-    .single();
+  useEffect(() => {
+    supabase.from('brands').select('*').eq('slug', slug).single()
+      .then(({ data }) => { if (data) setBrand(data); });
+  }, [slug]);
 
-  if (!brand) notFound();
+  if (!brand) return null;
+
+  const embedCode = `<script src="https://ai-seo-platform-dun.vercel.app/api/embed/${brand.slug}" async></script>`;
+
+  function copyCode() {
+    navigator.clipboard.writeText(embedCode);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
 
   return (
     <main className="min-h-screen bg-slate-950 text-white">
@@ -30,14 +43,9 @@ export default async function BizPage({ params }: { params: Promise<{ slug: stri
 
       <div className="max-w-4xl mx-auto px-8 py-12">
 
-        {/* Header — fully public */}
+        {/* Header */}
         <div className="mb-10">
-          <div className="flex items-center gap-3 mb-3 flex-wrap">
-            <h1 className="text-4xl font-bold">{brand.name}</h1>
-            <span className="text-xs px-3 py-1 rounded-full font-semibold bg-green-900/50 text-green-300">
-              ✓ Listed on AIVisible
-            </span>
-          </div>
+          <h1 className="text-4xl font-bold mb-3">{brand.name}</h1>
           <p className="text-slate-400 mb-4">
             {brand.city} · Ships to {brand.ships_to} · {priceLabel[brand.price_range] ?? brand.price_range}
           </p>
@@ -48,41 +56,24 @@ export default async function BizPage({ params }: { params: Promise<{ slug: stri
           </div>
         </div>
 
-        {/* Private stats — blurred with claim CTA */}
-        <div className="relative mb-10">
-          {/* Blurred stats behind the overlay */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 blur-sm select-none pointer-events-none" aria-hidden>
-            {[
-              { value: '2,400', label: 'AI searches / mo', color: 'text-purple-400' },
-              { value: '94%', label: 'Visibility score', color: 'text-green-400' },
-              { value: '12', label: 'Active AI queries', color: 'text-pink-400' },
-              { value: '#3', label: 'Category rank', color: 'text-orange-400' },
-            ].map(s => (
-              <div key={s.label} className="bg-slate-900 border border-white/10 rounded-2xl p-5">
-                <div className={`text-3xl font-black mb-1 ${s.color}`}>{s.value}</div>
-                <div className="text-sm text-slate-400">{s.label}</div>
+        {/* Stats — numbers blurred, labels visible */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+          {[
+            { value: brand.ai_searches?.toLocaleString() ?? '—', label: 'AI searches / mo', color: 'text-purple-400' },
+            { value: `${brand.top_queries?.length ?? 0}`, label: 'Active AI queries', color: 'text-green-400' },
+            { value: `${brand.certifications?.length ?? 0}`, label: 'Certifications', color: 'text-pink-400' },
+            { value: `${brand.specialties?.length ?? 0}`, label: 'Signature products', color: 'text-orange-400' },
+          ].map((s, i) => (
+            <div key={s.label} className="bg-slate-900 border border-white/10 rounded-2xl p-5">
+              <div className={`text-3xl font-black mb-1 ${s.color} ${i < 2 ? 'blur-sm select-none' : ''}`}>
+                {s.value}
               </div>
-            ))}
-          </div>
-
-          {/* Claim overlay */}
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="bg-slate-950/90 backdrop-blur-sm border border-purple-700/40 rounded-2xl px-8 py-6 text-center max-w-sm mx-4">
-              <div className="text-2xl mb-2">🔒</div>
-              <h3 className="font-bold mb-1 text-white">This is your brand?</h3>
-              <p className="text-slate-400 text-sm mb-4">
-                Claim it to see your AI search stats, visibility score, and which queries drive traffic to you.
-              </p>
-              <Link
-                href={`/dashboard?claim=${brand.slug}`}
-                className="block bg-purple-600 hover:bg-purple-500 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors">
-                Claim {brand.name} — it&apos;s free
-              </Link>
+              <div className="text-sm text-slate-400">{s.label}</div>
             </div>
-          </div>
+          ))}
         </div>
 
-        {/* About — public */}
+        {/* About */}
         <div className="bg-slate-900 border border-white/10 rounded-2xl p-6 mb-6">
           <h2 className="font-semibold mb-3">About</h2>
           <p className="text-slate-400 text-sm leading-relaxed">{brand.description}</p>
@@ -92,7 +83,6 @@ export default async function BizPage({ params }: { params: Promise<{ slug: stri
         </div>
 
         <div className="grid md:grid-cols-2 gap-6 mb-6">
-          {/* Specialties — public */}
           {brand.specialties?.length > 0 && (
             <div className="bg-slate-900 border border-white/10 rounded-2xl p-6">
               <h2 className="font-semibold mb-3">Signature products</h2>
@@ -106,7 +96,6 @@ export default async function BizPage({ params }: { params: Promise<{ slug: stri
             </div>
           )}
 
-          {/* Certifications — public */}
           <div className="bg-slate-900 border border-white/10 rounded-2xl p-6">
             <h2 className="font-semibold mb-3">Certifications & values</h2>
             {brand.certifications?.length > 0 ? (
@@ -131,55 +120,38 @@ export default async function BizPage({ params }: { params: Promise<{ slug: stri
           </div>
         </div>
 
-        {/* Top queries — blurred */}
-        <div className="relative mb-6">
-          <div className="bg-slate-900 border border-white/10 rounded-2xl p-6 blur-sm select-none pointer-events-none" aria-hidden>
+        {/* Top queries — blurred numbers, queries visible */}
+        {brand.top_queries?.length > 0 && (
+          <div className="bg-slate-900 border border-white/10 rounded-2xl p-6 mb-6">
             <h2 className="font-semibold mb-3">Top AI queries</h2>
             <ul className="space-y-2">
-              {['best fashion brand in Cairo', 'luxury Egyptian designer', 'where to buy local Egyptian fashion'].map(q => (
+              {brand.top_queries.map((q: string) => (
                 <li key={q} className="text-sm text-slate-300 flex items-start gap-2">
                   <span className="text-purple-400 mt-0.5">→</span> {q}
                 </li>
               ))}
             </ul>
           </div>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="bg-slate-950/80 backdrop-blur-sm border border-white/10 rounded-xl px-5 py-3 text-center">
-              <p className="text-sm text-slate-300 font-medium">🔒 Visible to brand owner only</p>
-              <Link href={`/dashboard?claim=${brand.slug}`} className="text-xs text-purple-400 hover:text-purple-300 mt-1 block">
-                Claim your brand →
-              </Link>
-            </div>
-          </div>
-        </div>
+        )}
 
-        {/* AI data endpoint — public, this is a selling point to show */}
+        {/* Embed code */}
         <div className="bg-slate-900 border border-white/10 rounded-2xl p-6 mb-6">
           <div className="flex items-center gap-2 mb-1">
-            <h2 className="font-semibold">AI data endpoint</h2>
-            <span className="text-xs bg-blue-900 text-blue-300 px-2 py-0.5 rounded-full">Claude & ChatGPT read this</span>
+            <h2 className="font-semibold">Embed code</h2>
+            <span className="text-xs bg-purple-900 text-purple-300 px-2 py-0.5 rounded-full">Free</span>
           </div>
-          <p className="text-sm text-slate-500 mb-3">
-            This is the structured data file that AI models read when someone asks about {brand.name}
+          <p className="text-sm text-slate-500 mb-4">
+            Paste this in your website&apos;s <code className="text-slate-300">&lt;head&gt;</code> to make {brand.name} visible in AI search results.
           </p>
-          <a href={`https://ai-seo-platform-dun.vercel.app/api/llms/${brand.slug}`}
-            target="_blank" rel="noopener noreferrer"
-            className="text-sm text-green-400 hover:text-green-300 font-mono break-all transition-colors">
-            {`https://ai-seo-platform-dun.vercel.app/api/llms/${brand.slug}`}
-          </a>
+          <div className="bg-black/40 rounded-xl p-4 font-mono text-sm text-green-400 break-all mb-3">
+            {embedCode}
+          </div>
+          <button onClick={copyCode}
+            className="bg-purple-600 hover:bg-purple-500 text-white px-5 py-2 rounded-lg text-sm font-semibold transition-colors">
+            {copied ? '✓ Copied!' : 'Copy code'}
+          </button>
         </div>
 
-        {/* Bottom CTA */}
-        <div className="bg-gradient-to-r from-purple-900/40 to-pink-900/40 border border-purple-700/30 rounded-2xl p-6 text-center">
-          <h3 className="font-bold mb-2">Is this your brand?</h3>
-          <p className="text-slate-400 text-sm mb-4">
-            Claim your free profile to get your embed script, see your AI search analytics, and take control of how AI describes your brand.
-          </p>
-          <Link href={`/dashboard?claim=${brand.slug}`}
-            className="inline-block bg-purple-600 hover:bg-purple-500 text-white px-6 py-3 rounded-xl font-semibold text-sm transition-colors">
-            Claim {brand.name} free →
-          </Link>
-        </div>
       </div>
     </main>
   );
