@@ -198,7 +198,7 @@ export default function DashboardPage() {
             <p className="text-slate-400 mb-8">We&apos;ll tailor your AI profile to your industry</p>
             <div className="grid gap-4">
               {BUSINESS_TYPES.map(bt => {
-                const isDisabled = bt.id === 'restaurant';
+                const isDisabled = false;
                 return isDisabled ? (
                   <div key={bt.id} className="text-left p-6 rounded-2xl border border-white/10 bg-white/5 opacity-50 cursor-not-allowed">
                     <div className="flex items-center gap-3 mb-2">
