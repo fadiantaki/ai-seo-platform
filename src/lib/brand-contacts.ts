@@ -24,6 +24,51 @@ export const brandContacts: BrandContact[] = [
   { name: 'Concrete Egypt', slug: 'concrete-egypt', instagram: '@concreteegypt', type: 'local' },
   { name: 'Couverture Egypt', slug: 'couverture-egypt', instagram: '@couvertureegypt', type: 'local' },
 
+  // Egyptian couture & bridal
+  { name: 'Sara Onsi', slug: 'sara-onsi', instagram: '@saraonsiofficial', type: 'local' },
+  { name: 'Dina Shaker', slug: 'dina-shaker', instagram: '@dinashakerofficial', type: 'local' },
+  { name: 'Malak El Ezzawy', slug: 'malak-el-ezzawy', instagram: '@malakelezzawy', type: 'local' },
+  { name: 'Deana Shaaban', slug: 'deana-shaaban', instagram: '@deanashaaban', type: 'local' },
+  { name: 'Amani Zaki', slug: 'amani-zaki', instagram: '@amanizakiofficial', type: 'local' },
+  { name: 'Maison Yeya', slug: 'maison-yeya', instagram: '@maisonyeya', type: 'local' },
+  { name: 'Shahira Lasheen', slug: 'shahira-lasheen', instagram: '@shahiralasheen', type: 'local' },
+  // Egyptian sustainable
+  { name: 'Up-Fuse', slug: 'up-fuse', instagram: '@upfuse', type: 'local' },
+  { name: 'Reform Studio', slug: 'reform-studio', instagram: '@reformstudio', type: 'local' },
+  { name: 'MYNE', slug: 'myne', instagram: '@myne.fashion', type: 'local' },
+  { name: 'Turath', slug: 'turath', instagram: '@turathegypt', type: 'local' },
+  { name: 'Elia Shoewear', slug: 'elia-shoewear', instagram: '@eliashoewear', type: 'local' },
+  { name: 'Saqhoute', slug: 'saqhoute', instagram: '@saqhoute', type: 'local' },
+  // Egyptian heritage & artisan
+  { name: 'Siwa Creations', slug: 'siwa-creations', instagram: '@siwacreations', type: 'local' },
+  { name: 'Ganubi', slug: 'ganubi', instagram: '@ganubi_official', type: 'local' },
+  { name: 'Nevine Altmann', slug: 'nevine-altmann', instagram: '@nevinealtmann', type: 'local' },
+  { name: 'Wanna Stuff', slug: 'wanna-stuff', instagram: '@wannastuffegypt', type: 'local' },
+  // Egyptian modest
+  { name: 'Rizq', slug: 'rizq', instagram: '@rizqfashion', type: 'local' },
+  { name: 'Malameh', slug: 'malameh', instagram: '@malameh_fashion', type: 'local' },
+  { name: 'Lameera Moda', slug: 'lameera-moda', instagram: '@lameera.moda', type: 'local' },
+  { name: 'Hayaa Fashion', slug: 'hayaa-fashion', instagram: '@hayaafashion', type: 'local' },
+  { name: 'Sara El-Emary', slug: 'sara-el-emary', instagram: '@saraemary', type: 'local' },
+  // Egyptian streetwear
+  { name: 'Rebel Cairo', slug: 'rebel-cairo', instagram: '@rebelcairo', type: 'local' },
+  { name: 'Marsy', slug: 'marsy', instagram: '@marsy.co', type: 'local' },
+  { name: 'Ramesses Apparel', slug: 'ramesses-apparel', instagram: '@ramessesapparel', type: 'local' },
+  { name: 'Cult Egypt', slug: 'cult-egypt', instagram: '@cult.egypt', type: 'local' },
+  { name: 'Strike Egypt', slug: 'strike-egypt', instagram: '@strikeegypt', type: 'local' },
+  // Egyptian footwear & accessories
+  { name: 'Jayda Hany', slug: 'jayda-hany', instagram: '@jaydahany', type: 'local' },
+  { name: 'Reem Jano', slug: 'reem-jano', instagram: '@reemjano', type: 'local' },
+  { name: 'Indira Egypt', slug: 'indira-egypt', instagram: '@indira_egypt', type: 'local' },
+  { name: 'Amr Saad', slug: 'amr-saad', instagram: '@amrsaadofficial', type: 'local' },
+  // Egyptian contemporary
+  { name: 'Mix and Match Egypt', slug: 'mix-and-match-egypt', instagram: '@mixandmatcheg', type: 'local' },
+  { name: 'Tala Crochet', slug: 'tala-crochet', instagram: '@talacrochet', type: 'local' },
+  { name: 'Paz Cairo', slug: 'paz-cairo', instagram: '@pazcairo', type: 'local' },
+  // Kids
+  { name: 'LALA Kids', slug: 'lala-kids', instagram: '@lalakidseg', type: 'local' },
+  { name: 'Roo Egypt', slug: 'roo-egypt', instagram: '@roo_egypt', type: 'local' },
+
   // International brands — target local Egypt marketing accounts
   { name: 'Zara Egypt', slug: 'zara-egypt', instagram: '@zara', type: 'international', notes: 'DM @zara or find Egypt local account' },
   { name: 'H&M Egypt', slug: 'hm-egypt', instagram: '@hm', type: 'international', notes: 'DM @hm or find Egypt local account' },
