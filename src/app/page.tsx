@@ -14,6 +14,7 @@ export default function Home() {
         <div className="flex gap-6 items-center text-sm text-slate-300">
           <Link href="/directory" className="hover:text-white transition-colors">Directory</Link>
           <Link href="/analytics" className="hover:text-white transition-colors">Analytics</Link>
+          <Link href="/pricing" className="hover:text-white transition-colors">Pricing</Link>
           <Link href="/demo" className="hover:text-white transition-colors">Demo</Link>
           <Link href="/dashboard" className="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg transition-colors">
             Get Started
