@@ -189,18 +189,31 @@ export default function DashboardPage() {
             <h1 className="text-3xl font-bold mb-2">What type of business are you?</h1>
             <p className="text-slate-400 mb-8">We&apos;ll tailor your AI profile to your industry</p>
             <div className="grid gap-4">
-              {BUSINESS_TYPES.map(bt => (
-                <button key={bt.id} onClick={() => setBusinessType(bt.id)}
-                  className={`text-left p-6 rounded-2xl border transition-all ${businessType === bt.id ? 'bg-purple-900/40 border-purple-500' : 'bg-white/5 border-white/10 hover:border-white/30'}`}>
-                  <div className="flex items-center gap-3 mb-2">
-                    <span className="text-3xl">{bt.icon}</span>
-                    <span className="text-lg font-semibold">{bt.title}</span>
-                    {businessType === bt.id && <span className="ml-auto text-purple-400 text-xl">✓</span>}
+              {BUSINESS_TYPES.map(bt => {
+                const isDisabled = bt.id === 'restaurant';
+                return isDisabled ? (
+                  <div key={bt.id} className="text-left p-6 rounded-2xl border border-white/10 bg-white/5 opacity-50 cursor-not-allowed">
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className="text-3xl">{bt.icon}</span>
+                      <span className="text-lg font-semibold">{bt.title}</span>
+                      <span className="ml-auto text-xs text-slate-500">Coming soon</span>
+                    </div>
+                    <p className="text-slate-400 text-sm mb-2">{bt.desc}</p>
+                    <p className="text-slate-500 text-xs italic">{bt.examples}</p>
                   </div>
-                  <p className="text-slate-400 text-sm mb-2">{bt.desc}</p>
-                  <p className="text-slate-500 text-xs italic">{bt.examples}</p>
-                </button>
-              ))}
+                ) : (
+                  <button key={bt.id} onClick={() => setBusinessType(bt.id)}
+                    className={`text-left p-6 rounded-2xl border transition-all ${businessType === bt.id ? 'bg-purple-900/40 border-purple-500' : 'bg-white/5 border-white/10 hover:border-white/30'}`}>
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className="text-3xl">{bt.icon}</span>
+                      <span className="text-lg font-semibold">{bt.title}</span>
+                      {businessType === bt.id && <span className="ml-auto text-purple-400 text-xl">✓</span>}
+                    </div>
+                    <p className="text-slate-400 text-sm mb-2">{bt.desc}</p>
+                    <p className="text-slate-500 text-xs italic">{bt.examples}</p>
+                  </button>
+                );
+              })}
             </div>
             <button onClick={() => setStep(1)} disabled={!businessType}
               className="mt-8 w-full bg-purple-600 hover:bg-purple-500 disabled:opacity-40 disabled:cursor-not-allowed text-white py-4 rounded-xl font-semibold transition-colors">
