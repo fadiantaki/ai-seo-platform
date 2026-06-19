@@ -78,11 +78,13 @@ export default async function DirectoryPage() {
                 </div>
 
                 <div className="flex items-center justify-between pt-4 border-t border-white/5">
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 bg-green-400 rounded-full"></span>
-                    <span className="text-xs text-slate-400">
-                      <span className="text-white font-semibold">{brand.ai_searches?.toLocaleString() ?? 0}</span> AI searches/mo
-                    </span>
+                  <div className="flex items-center gap-2">
+                    {brand.embed_installed ? (
+                      <span className="text-xs bg-green-900/50 text-green-400 px-2 py-0.5 rounded-full">✓ AI-optimized</span>
+                    ) : (
+                      <span className="text-xs bg-red-900/30 text-red-400 px-2 py-0.5 rounded-full">⚠ Script not installed</span>
+                    )}
+                    <span className="text-xs text-slate-500">{brand.ai_searches?.toLocaleString() ?? 0} searches/mo</span>
                   </div>
                   <span className="text-xs text-purple-400 group-hover:text-purple-300">View profile →</span>
                 </div>

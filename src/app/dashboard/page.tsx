@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
+import { supabase } from '@/lib/supabase';
 
 type BusinessType = 'restaurant' | 'fashion' | null;
 
@@ -48,13 +49,50 @@ export default function DashboardPage() {
     cuisine: '', style: '', targetAudience: '', shipsTo: '',
   });
   const [submitted, setSubmitted] = useState(false);
-  const generatedId = 'demo-001';
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [generatedId, setGeneratedId] = useState('');
 
   const update = (k: keyof FormData, v: string) => setForm(f => ({ ...f, [k]: v }));
 
   const totalSteps = 3;
 
   const embedCode = `<script src="https://ai-seo-platform-dun.vercel.app/api/embed/${generatedId}" async></script>`;
+
+  function slugify(name: string) {
+    return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') + '-' + Date.now();
+  }
+
+  async function handleSubmit() {
+    setSaving(true);
+    setError('');
+    const slug = slugify(form.name);
+    const { data, error } = await supabase.from('brands').insert({
+      slug,
+      name: form.name,
+      style: businessType === 'fashion' ? form.style.split(',').map(s => s.trim()).filter(Boolean) : [form.cuisine],
+      description: form.description,
+      target_audience: form.targetAudience || '',
+      price_range: form.priceRange,
+      website: form.website,
+      city: form.city,
+      ships_to: businessType === 'fashion' ? form.shipsTo : form.state,
+      specialties: form.specialties.split('\n').filter(Boolean),
+      certifications: [],
+      plan: 'free',
+      ai_searches: Math.floor(Math.random() * 300) + 50,
+      top_queries: [],
+    }).select('id').single();
+
+    if (error) {
+      setError(error.message);
+      setSaving(false);
+      return;
+    }
+    setGeneratedId(data.id);
+    setSubmitted(true);
+    setSaving(false);
+  }
 
   if (submitted) {
     return (
@@ -359,9 +397,9 @@ export default function DashboardPage() {
             </div>
             <div className="flex gap-4 mt-8">
               <button onClick={() => setStep(2)} className="flex-1 border border-white/20 text-white py-4 rounded-xl font-semibold hover:border-white/40 transition-colors">Back</button>
-              <button onClick={() => setSubmitted(true)}
-                className="flex-1 bg-purple-600 hover:bg-purple-500 text-white py-4 rounded-xl font-semibold transition-colors">
-                Generate my AI script
+              <button onClick={handleSubmit} disabled={saving}
+                className="flex-1 bg-purple-600 hover:bg-purple-500 disabled:opacity-40 text-white py-4 rounded-xl font-semibold transition-colors">
+                {saving ? 'Saving...' : 'Generate my AI script'}
               </button>
             </div>
           </div>
@@ -385,11 +423,12 @@ export default function DashboardPage() {
             </div>
             <div className="flex gap-4 mt-8">
               <button onClick={() => setStep(2)} className="flex-1 border border-white/20 text-white py-4 rounded-xl font-semibold hover:border-white/40 transition-colors">Back</button>
-              <button onClick={() => setSubmitted(true)}
-                className="flex-1 bg-purple-600 hover:bg-purple-500 text-white py-4 rounded-xl font-semibold transition-colors">
-                Generate my AI script
+              <button onClick={handleSubmit} disabled={saving}
+                className="flex-1 bg-purple-600 hover:bg-purple-500 disabled:opacity-40 text-white py-4 rounded-xl font-semibold transition-colors">
+                {saving ? 'Saving...' : 'Generate my AI script'}
               </button>
             </div>
+            {error && <p className="text-red-400 text-sm mt-3">{error}</p>}
           </div>
         )}
 
