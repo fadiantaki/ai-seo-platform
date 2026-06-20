@@ -19,6 +19,12 @@ export default function AdminPage() {
   const [loginPass, setLoginPass] = useState('');
   const [loginError, setLoginError] = useState('');
   const [brands, setBrands] = useState<FashionBrand[]>([]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && localStorage.getItem('aivisible_admin') === 'true') {
+      setAuthed(true); localStorage.setItem('aivisible_admin', 'true');
+    }
+  }, []);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -27,6 +33,7 @@ export default function AdminPage() {
   const [form, setForm] = useState({
     name: '',
     email: '',
+    instagram: '',
     style: [] as string[],
     description: '',
     targetAudience: '',
@@ -86,6 +93,7 @@ export default function AdminPage() {
       slug: slugify(form.name),
       name: form.name,
       email: form.email || null,
+      instagram: form.instagram || null,
       style: form.style,
       description: form.description,
       target_audience: form.targetAudience,
@@ -105,7 +113,7 @@ export default function AdminPage() {
     } else {
       setSaved(true);
       setShowForm(false);
-      setForm({ name: '', email: '', style: [], description: '', targetAudience: '', priceRange: '$$', website: '', city: '', shipsTo: '', specialties: '', certifications: '', plan: 'free' });
+      setForm({ name: '', email: '', instagram: '', style: [], description: '', targetAudience: '', priceRange: '$$', website: '', city: '', shipsTo: '', specialties: '', certifications: '', plan: 'free' });
       setTimeout(() => setSaved(false), 3000);
       loadBrands();
     }
@@ -147,7 +155,7 @@ export default function AdminPage() {
                 onKeyDown={e => {
                   if (e.key === 'Enter') {
                     if (loginUser === ADMIN_USER && loginPass === ADMIN_PASS) {
-                      setAuthed(true);
+                      setAuthed(true); localStorage.setItem('aivisible_admin', 'true');
                     } else {
                       setLoginError('Invalid username or password');
                     }
@@ -159,7 +167,7 @@ export default function AdminPage() {
             <button
               onClick={() => {
                 if (loginUser === ADMIN_USER && loginPass === ADMIN_PASS) {
-                  setAuthed(true);
+                  setAuthed(true); localStorage.setItem('aivisible_admin', 'true');
                 } else {
                   setLoginError('Invalid username or password');
                 }
@@ -224,6 +232,7 @@ export default function AdminPage() {
                 <Field label="Website URL *" value={form.website} onChange={v => update('website', v)} placeholder="https://stellanova.com" />
               </div>
               <Field label="Contact email" value={form.email} onChange={v => update('email', v)} placeholder="hello@stellanova.com" />
+              <Field label="Instagram handle" value={form.instagram} onChange={v => update('instagram', v)} placeholder="@stellanova" />
               <Field label="Description *" value={form.description} onChange={v => update('description', v)} placeholder="What makes this brand unique? Materials, values, origin story..." textarea />
               <div className="grid md:grid-cols-2 gap-4">
                 <Field label="Target audience" value={form.targetAudience} onChange={v => update('targetAudience', v)} placeholder="e.g. Women 25-40, eco-conscious" />

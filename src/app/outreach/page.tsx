@@ -30,6 +30,12 @@ export default function OutreachPage() {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
+    if (typeof window !== 'undefined' && localStorage.getItem('aivisible_admin') === 'true') {
+      setAuthed(true); localStorage.setItem('aivisible_admin', 'true');
+    }
+  }, []);
+
+  useEffect(() => {
     if (!authed) return;
     supabase.from('brands')
       .select('id, slug, name, embed_installed, embed_last_seen, embed_domain, outreach_sent, outreach_sent_at, plan')
@@ -85,10 +91,10 @@ export default function OutreachPage() {
             <div>
               <label className="block text-sm text-slate-400 mb-1">Password</label>
               <input type="password" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500" value={loginPass} onChange={e => setLoginPass(e.target.value)} placeholder="Password"
-                onKeyDown={e => { if (e.key === 'Enter') { if (loginUser === ADMIN_USER && loginPass === ADMIN_PASS) { setAuthed(true); } else { setLoginError('Invalid username or password'); } } }} />
+                onKeyDown={e => { if (e.key === 'Enter') { if (loginUser === ADMIN_USER && loginPass === ADMIN_PASS) { setAuthed(true); localStorage.setItem('aivisible_admin', 'true'); } else { setLoginError('Invalid username or password'); } } }} />
             </div>
             {loginError && <p className="text-red-400 text-sm">{loginError}</p>}
-            <button onClick={() => { if (loginUser === ADMIN_USER && loginPass === ADMIN_PASS) { setAuthed(true); } else { setLoginError('Invalid username or password'); } }}
+            <button onClick={() => { if (loginUser === ADMIN_USER && loginPass === ADMIN_PASS) { setAuthed(true); localStorage.setItem('aivisible_admin', 'true'); } else { setLoginError('Invalid username or password'); } }}
               className="w-full bg-purple-600 hover:bg-purple-500 text-white py-3 rounded-xl font-semibold transition-colors">
               Login
             </button>

@@ -15,6 +15,7 @@ interface Product {
 interface FormData {
   name: string;
   email: string;
+  instagram: string;
   description: string;
   address: string;
   city: string;
@@ -58,7 +59,7 @@ export default function DashboardPage() {
   const [businessType, setBusinessType] = useState<BusinessType>(null);
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<FormData>({
-    name: '', email: '', description: '', address: '', city: '', state: '',
+    name: '', email: '', instagram: '', description: '', address: '', city: '', state: '',
     phone: '', website: '', priceRange: '$$', specialties: '',
     cuisine: '', style: '', targetAudience: '', shipsTo: '',
   });
@@ -98,6 +99,9 @@ export default function DashboardPage() {
     const { data, error } = await supabase.from('brands').insert({
       slug,
       name: form.name,
+      email: form.email || null,
+      instagram: form.instagram || null,
+      business_type: businessType,
       style: businessType === 'fashion' ? form.style.split(',').map(s => s.trim()).filter(Boolean) : [form.cuisine],
       description: form.description,
       target_audience: form.targetAudience || '',
@@ -284,6 +288,7 @@ export default function DashboardPage() {
               </div>
               <Field label="Phone" value={form.phone} onChange={v => update('phone', v)} placeholder="+20 2 1234 5678" />
               <Field label="Website URL" value={form.website} onChange={v => update('website', v)} placeholder="https://yourrestaurant.com" />
+              <Field label="Instagram handle" value={form.instagram} onChange={v => update('instagram', v)} placeholder="@yourrestaurant" />
             </div>
             <StepNav onBack={() => setStep(1)} onNext={() => setStep(3)} disabled={!form.address || !form.city} />
           </div>
@@ -295,6 +300,7 @@ export default function DashboardPage() {
             <p className="text-slate-400 mb-8">So AI can tell shoppers where to find you</p>
             <div className="space-y-4">
               <Field label="Website / shop URL *" value={form.website} onChange={v => update('website', v)} placeholder="https://yourbrand.com" />
+              <Field label="Instagram handle" value={form.instagram} onChange={v => update('instagram', v)} placeholder="@yourbrand" />
               <Field label="Ships to *" value={form.shipsTo} onChange={v => update('shipsTo', v)} placeholder="e.g. Egypt, Middle East, Worldwide" />
               <Field label="HQ city *" value={form.city} onChange={v => update('city', v)} placeholder="e.g. Cairo" />
               <Field label="Phone / contact" value={form.phone} onChange={v => update('phone', v)} placeholder="+20 2 1234 5678" />

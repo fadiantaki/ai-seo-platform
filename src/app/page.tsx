@@ -1,25 +1,55 @@
+'use client';
 import Link from 'next/link';
+import { useState } from 'react';
 
 export default function Home() {
+  const [menuOpen, setMenuOpen] = useState(false);
+
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 text-white">
       {/* Nav */}
-      <nav className="flex items-center justify-between px-8 py-5 border-b border-white/10">
+      <nav className="flex items-center justify-between px-6 py-5 border-b border-white/10 relative">
         <div className="flex items-center gap-2">
           <span className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
             AIVisible
           </span>
           <span className="text-xs bg-purple-800 text-purple-200 px-2 py-0.5 rounded-full">Beta</span>
         </div>
-        <div className="flex gap-6 items-center text-sm text-slate-300">
+
+        {/* Desktop menu */}
+        <div className="hidden md:flex gap-6 items-center text-sm text-slate-300">
           <Link href="/directory" className="hover:text-white transition-colors">Directory</Link>
           <Link href="/analytics" className="hover:text-white transition-colors">Analytics</Link>
           <Link href="/pricing" className="hover:text-white transition-colors">Pricing</Link>
           <Link href="/demo" className="hover:text-white transition-colors">Demo</Link>
+          <Link href="/admin" className="hover:text-white transition-colors">Admin</Link>
           <Link href="/dashboard" className="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg transition-colors">
             Get Started
           </Link>
         </div>
+
+        {/* Mobile hamburger */}
+        <button className="md:hidden text-slate-300 hover:text-white" onClick={() => setMenuOpen(!menuOpen)}>
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            {menuOpen
+              ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />}
+          </svg>
+        </button>
+
+        {/* Mobile dropdown */}
+        {menuOpen && (
+          <div className="md:hidden absolute top-full left-0 right-0 bg-slate-900 border-b border-white/10 z-50 px-6 py-4 flex flex-col gap-4 text-sm text-slate-300">
+            <Link href="/directory" onClick={() => setMenuOpen(false)} className="hover:text-white transition-colors">Directory</Link>
+            <Link href="/analytics" onClick={() => setMenuOpen(false)} className="hover:text-white transition-colors">Analytics</Link>
+            <Link href="/pricing" onClick={() => setMenuOpen(false)} className="hover:text-white transition-colors">Pricing</Link>
+            <Link href="/demo" onClick={() => setMenuOpen(false)} className="hover:text-white transition-colors">Demo</Link>
+            <Link href="/admin" onClick={() => setMenuOpen(false)} className="hover:text-white transition-colors">Admin</Link>
+            <Link href="/dashboard" onClick={() => setMenuOpen(false)} className="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg transition-colors text-center font-semibold">
+              Get Started
+            </Link>
+          </div>
+        )}
       </nav>
 
       {/* Hero */}

@@ -49,7 +49,14 @@ export default function DirectoryPage() {
           <span className="text-xs bg-white/5 text-slate-300 px-2 py-1 rounded-lg">{priceLabel[brand.price_range]}</span>
         )}
       </div>
-      <div className="flex items-center justify-end pt-4 border-t border-white/5">
+      <div className="flex items-center justify-between pt-4 border-t border-white/5">
+        {brand.instagram ? (
+          <a href={`https://instagram.com/${brand.instagram.replace('@','')}`} target="_blank" rel="noopener noreferrer"
+            onClick={e => e.stopPropagation()}
+            className="text-xs text-pink-400 hover:text-pink-300 transition-colors">
+            {brand.instagram}
+          </a>
+        ) : <span />}
         <span className="text-xs text-purple-400 group-hover:text-purple-300">View profile →</span>
       </div>
     </Link>
@@ -70,7 +77,7 @@ export default function DirectoryPage() {
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-3">Egyptian Business Directory</h1>
           <p className="text-slate-400 max-w-xl">
-            Every listing here is optimized to appear when AI systems answer queries about Egypt.
+            Is your business in the list below? Simply click on it, copy your free optimization code, and embed it on your website to start appearing in AI search results.
           </p>
         </div>
 
