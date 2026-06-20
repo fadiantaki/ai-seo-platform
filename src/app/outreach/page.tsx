@@ -67,8 +67,7 @@ AIVisible makes sure {name} is one of the ones that shows up.
 
 Visit your profile, check your details, and paste the code on your site. If you need any help, just reply to this email — we're happy to assist.
 
-— Fadi Antaki
-Founder, AIVisible
+— The AIVisible Team
 hello@beaivisible.io
 instagram.com/aivisible_eg`);
   const [bulkPreview, setBulkPreview] = useState<{ id: string; name: string; email: string; slug: string }[]>([]);
