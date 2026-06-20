@@ -8,6 +8,7 @@ interface BrandRow {
   id: string;
   slug: string;
   name: string;
+  email: string | null;
   embed_installed: boolean;
   embed_last_seen: string | null;
   embed_domain: string | null;
@@ -28,6 +29,29 @@ export default function OutreachPage() {
   const [filter, setFilter] = useState<'all' | 'pending' | 'sent' | 'installed'>('all');
   const [dmBrand, setDmBrand] = useState<{ name: string; slug: string; instagram: string } | null>(null);
   const [copied, setCopied] = useState(false);
+  const [activeTab, setActiveTab] = useState<'tracker' | 'bulk-email'>('tracker');
+  const [bulkSubject, setBulkSubject] = useState('Is {name} listed on AIVisible? Here\'s your free optimization code');
+  const [bulkBody, setBulkBody] = useState(`Hi {name} team,
+
+We just added your business to AIVisible — Egypt's first AI search directory.
+
+When people ask Claude, ChatGPT, or Perplexity for places to eat or shop in Egypt, AIVisible helps your business appear in those answers.
+
+Your free profile is already live at: {profile_url}
+
+To activate full AI optimization, just paste this one line of code in your website's <head>:
+
+{embed_code}
+
+It takes 2 minutes and it's completely free.
+
+If any of your details are wrong, just reply to this email and we'll fix it.
+
+— Fadi
+AIVisible · hello@beaivisible.io · @aivisible_eg`);
+  const [bulkPreview, setBulkPreview] = useState<{ id: string; name: string; email: string; slug: string }[]>([]);
+  const [bulkSending, setBulkSending] = useState(false);
+  const [bulkResult, setBulkResult] = useState<{ sent: number; failed: number } | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && localStorage.getItem('aivisible_admin') === 'true') {
@@ -38,10 +62,39 @@ export default function OutreachPage() {
   useEffect(() => {
     if (!authed) return;
     supabase.from('brands')
-      .select('id, slug, name, embed_installed, embed_last_seen, embed_domain, outreach_sent, outreach_sent_at, plan')
+      .select('id, slug, name, email, embed_installed, embed_last_seen, embed_domain, outreach_sent, outreach_sent_at, plan')
       .order('name')
       .then(({ data }) => setBrands(data || []));
   }, [authed]);
+
+  async function loadBulkPreview() {
+    const res = await fetch('/api/bulk-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subject: bulkSubject, body: bulkBody, preview: true }),
+    });
+    const data = await res.json();
+    setBulkPreview(data.recipients || []);
+  }
+
+  async function sendBulkEmail() {
+    if (!confirm(`Send to ${bulkPreview.length} brands? This cannot be undone.`)) return;
+    setBulkSending(true);
+    setBulkResult(null);
+    const res = await fetch('/api/bulk-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subject: bulkSubject, body: bulkBody }),
+    });
+    const data = await res.json();
+    setBulkResult({ sent: data.sent, failed: data.failed });
+    setBulkSending(false);
+    // Refresh brand list
+    const { data: fresh } = await supabase.from('brands')
+      .select('id, slug, name, email, embed_installed, embed_last_seen, embed_domain, outreach_sent, outreach_sent_at, plan')
+      .order('name');
+    if (fresh) setBrands(fresh);
+  }
 
   async function markOutreachSent(brandId: string) {
     await supabase.from('brands').update({
@@ -120,9 +173,21 @@ export default function OutreachPage() {
       </nav>
 
       <div className="max-w-6xl mx-auto px-8 py-10">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-1">Outreach Tracker</h1>
-          <p className="text-slate-400">Track Instagram DMs sent to brands and monitor embed installs.</p>
+        <div className="flex items-end justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-bold mb-1">Outreach</h1>
+            <p className="text-slate-400">Track DMs and send bulk emails to all listed brands.</p>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={() => setActiveTab('tracker')}
+              className={`px-5 py-2 rounded-xl font-semibold text-sm transition-all ${activeTab === 'tracker' ? 'bg-purple-600 text-white' : 'bg-white/5 text-slate-400 hover:text-white'}`}>
+              Instagram Tracker
+            </button>
+            <button onClick={() => { setActiveTab('bulk-email'); loadBulkPreview(); }}
+              className={`px-5 py-2 rounded-xl font-semibold text-sm transition-all ${activeTab === 'bulk-email' ? 'bg-purple-600 text-white' : 'bg-white/5 text-slate-400 hover:text-white'}`}>
+              📧 Bulk Email
+            </button>
+          </div>
         </div>
 
         {/* Stats */}
@@ -140,6 +205,82 @@ export default function OutreachPage() {
           ))}
         </div>
 
+        {/* Bulk Email Panel */}
+        {activeTab === 'bulk-email' && (
+          <div>
+            <div className="grid md:grid-cols-2 gap-8">
+              {/* Compose */}
+              <div className="space-y-5">
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Subject line</label>
+                  <input
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 text-sm"
+                    value={bulkSubject}
+                    onChange={e => setBulkSubject(e.target.value)}
+                    placeholder="Subject..."
+                  />
+                  <p className="text-xs text-slate-500 mt-1">Use <code className="text-purple-400">{'{name}'}</code> for brand name</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Email body</label>
+                  <textarea
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 text-sm min-h-64 resize-y font-mono"
+                    value={bulkBody}
+                    onChange={e => setBulkBody(e.target.value)}
+                  />
+                  <p className="text-xs text-slate-500 mt-1">
+                    Variables: <code className="text-purple-400">{'{name}'}</code> · <code className="text-purple-400">{'{profile_url}'}</code> · <code className="text-purple-400">{'{embed_code}'}</code>
+                  </p>
+                </div>
+
+                {bulkResult && (
+                  <div className={`rounded-xl px-4 py-3 text-sm ${bulkResult.failed === 0 ? 'bg-green-900/40 border border-green-700/50 text-green-300' : 'bg-yellow-900/40 border border-yellow-700/50 text-yellow-300'}`}>
+                    ✓ Sent: {bulkResult.sent} · Failed: {bulkResult.failed}
+                  </div>
+                )}
+
+                <button
+                  onClick={sendBulkEmail}
+                  disabled={bulkSending || bulkPreview.length === 0}
+                  className="w-full bg-purple-600 hover:bg-purple-500 disabled:opacity-40 disabled:cursor-not-allowed text-white py-3 rounded-xl font-semibold transition-colors">
+                  {bulkSending ? 'Sending...' : `Send to ${bulkPreview.length} brands with emails`}
+                </button>
+              </div>
+
+              {/* Recipients */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-semibold text-sm text-slate-300">Recipients ({bulkPreview.length})</h3>
+                  <button onClick={loadBulkPreview} className="text-xs text-purple-400 hover:text-purple-300">Refresh</button>
+                </div>
+                <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden max-h-[480px] overflow-y-auto">
+                  {bulkPreview.length === 0 ? (
+                    <div className="text-center py-8 text-slate-500 text-sm">No brands with emails yet</div>
+                  ) : (
+                    <table className="w-full text-sm">
+                      <thead className="border-b border-white/10">
+                        <tr className="text-slate-400 text-xs">
+                          <th className="text-left px-4 py-2 font-medium">Brand</th>
+                          <th className="text-left px-4 py-2 font-medium">Email</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {bulkPreview.map(b => (
+                          <tr key={b.id} className="border-b border-white/5">
+                            <td className="px-4 py-2 text-white">{b.name}</td>
+                            <td className="px-4 py-2 text-slate-400 text-xs">{b.email}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'tracker' && <>
         {/* Filter tabs */}
         <div className="flex gap-2 mb-6">
           {(['all', 'pending', 'sent', 'installed'] as const).map(f => (
@@ -259,6 +400,7 @@ export default function OutreachPage() {
             <div className="text-center py-12 text-slate-500">No brands in this filter.</div>
           )}
         </div>
+        </>}
       </div>
     </main>
   );
