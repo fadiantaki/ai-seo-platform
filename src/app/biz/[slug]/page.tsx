@@ -18,12 +18,20 @@ const gradeRing: Record<string, string> = {
 interface Report {
   score: number;
   grade: string;
-  summary: string;
+  aiVisibilityContext: string;
+  profileScore: number;
+  profileMax: number;
+  profileBreakdown: Record<string, number>;
+  embedScore: number;
+  embedMax: number;
+  aiMentionScore: number;
+  aiMentionMax: number;
   mentionCount: number;
   totalQueries: number;
   mentionRate: string;
   mentionedIn: string[];
   missedIn: string[];
+  gaps: string[];
   sampleQuery: string;
   sampleResponse: string;
   generatedAt: string;
@@ -160,8 +168,8 @@ export default function BizPage() {
 
           {report && !generating && (
             <div className="mt-6">
-              {/* Score */}
-              <div className="flex items-center gap-6 mb-6">
+              {/* Score + grade */}
+              <div className="flex items-center gap-6 mb-4">
                 <div className={`w-20 h-20 rounded-full border-4 ${gradeRing[report.grade]} flex flex-col items-center justify-center shrink-0`}>
                   <span className={`text-3xl font-black ${gradeColor[report.grade]}`}>{report.grade}</span>
                 </div>
@@ -170,34 +178,41 @@ export default function BizPage() {
                     <span className="text-4xl font-black text-white">{report.score}</span>
                     <span className="text-slate-500 text-sm">/100</span>
                   </div>
-                  <p className="text-sm text-slate-300">{report.summary}</p>
+                  <p className="text-xs text-slate-400">Overall AI Visibility Score</p>
                 </div>
               </div>
 
               {/* Score bar */}
               <div className="h-2 bg-white/10 rounded-full mb-6 overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-purple-600 to-pink-500 transition-all duration-1000"
-                  style={{ width: `${report.score}%` }}
-                />
+                <div className="h-full rounded-full bg-gradient-to-r from-purple-600 to-pink-500 transition-all duration-1000"
+                  style={{ width: `${report.score}%` }} />
               </div>
 
-              {/* Mention rate */}
-              <div className="grid grid-cols-2 gap-4 mb-6">
-                <div className="bg-white/5 rounded-xl p-4">
-                  <div className="text-2xl font-bold text-white mb-1">{report.mentionRate}</div>
-                  <div className="text-xs text-slate-400">AI queries where you appear</div>
+              {/* Score breakdown — 3 components */}
+              <div className="grid grid-cols-3 gap-3 mb-5">
+                <div className="bg-white/5 rounded-xl p-3 text-center">
+                  <div className="text-xl font-bold text-purple-300 mb-0.5">{report.profileScore}<span className="text-xs text-slate-500">/{report.profileMax}</span></div>
+                  <div className="text-xs text-slate-400">Profile</div>
                 </div>
-                <div className="bg-white/5 rounded-xl p-4">
-                  <div className={`text-2xl font-bold mb-1 ${gradeColor[report.grade]}`}>{report.grade}-grade</div>
-                  <div className="text-xs text-slate-400">overall AI visibility</div>
+                <div className="bg-white/5 rounded-xl p-3 text-center">
+                  <div className={`text-xl font-bold mb-0.5 ${report.embedScore > 0 ? 'text-green-400' : 'text-slate-500'}`}>{report.embedScore}<span className="text-xs text-slate-500">/{report.embedMax}</span></div>
+                  <div className="text-xs text-slate-400">Embed</div>
                 </div>
+                <div className="bg-white/5 rounded-xl p-3 text-center">
+                  <div className="text-xl font-bold text-blue-300 mb-0.5">{report.aiMentionScore}<span className="text-xs text-slate-500">/{report.aiMentionMax}</span></div>
+                  <div className="text-xs text-slate-400">AI Mentions</div>
+                </div>
+              </div>
+
+              {/* AI visibility context */}
+              <div className="bg-slate-800/60 rounded-xl p-4 mb-5">
+                <p className="text-xs text-slate-300 leading-relaxed">{report.aiVisibilityContext}</p>
               </div>
 
               {/* Queries breakdown */}
               {report.mentionedIn?.length > 0 && (
                 <div className="mb-4">
-                  <p className="text-xs font-semibold text-green-400 mb-2">✓ You appear when people ask:</p>
+                  <p className="text-xs font-semibold text-green-400 mb-2">✓ ChatGPT mentions you when people ask:</p>
                   <ul className="space-y-1">
                     {report.mentionedIn.map((q, i) => (
                       <li key={i} className="text-xs text-slate-300 flex items-start gap-2">
@@ -209,7 +224,7 @@ export default function BizPage() {
               )}
               {report.missedIn?.length > 0 && (
                 <div className="mb-5">
-                  <p className="text-xs font-semibold text-red-400 mb-2">✗ You&apos;re missing from:</p>
+                  <p className="text-xs font-semibold text-red-400 mb-2">✗ You don&apos;t appear yet when people ask:</p>
                   <ul className="space-y-1">
                     {report.missedIn.map((q, i) => (
                       <li key={i} className="text-xs text-slate-500 flex items-start gap-2">
@@ -222,20 +237,29 @@ export default function BizPage() {
 
               {/* Sample AI response */}
               {report.sampleResponse && (
-                <div className="bg-black/30 rounded-xl p-4">
-                  <p className="text-xs text-slate-500 mb-2">Sample AI response to: <span className="text-slate-400 italic">&quot;{report.sampleQuery}&quot;</span></p>
+                <div className="bg-black/30 rounded-xl p-4 mb-5">
+                  <p className="text-xs text-slate-500 mb-2">What ChatGPT says when asked: <span className="text-slate-400 italic">&quot;{report.sampleQuery}&quot;</span></p>
                   <p className="text-xs text-slate-300 leading-relaxed">{report.sampleResponse}{report.sampleResponse.length >= 500 ? '…' : ''}</p>
                 </div>
               )}
 
-              {report.score < 70 && (
-                <div className="mt-5 bg-purple-900/20 border border-purple-700/30 rounded-xl p-4">
-                  <p className="text-sm font-semibold text-purple-300 mb-1">Want to improve this score?</p>
-                  <p className="text-xs text-slate-400 mb-3">Install the free embed code on your website. It signals your brand data directly to AI crawlers — brands that install it typically see a 2–3× improvement within 30 days.</p>
-                  <button onClick={() => document.getElementById('embed-section')?.scrollIntoView({ behavior: 'smooth' })}
-                    className="text-xs bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg font-semibold transition-colors">
-                    Get your free embed code ↓
-                  </button>
+              {/* Actionable gaps */}
+              {report.gaps?.length > 0 && (
+                <div className="bg-amber-950/30 border border-amber-700/30 rounded-xl p-4">
+                  <p className="text-xs font-semibold text-amber-300 mb-2">🔧 Improve your score — quick wins:</p>
+                  <ul className="space-y-1.5">
+                    {report.gaps.map((g, i) => (
+                      <li key={i} className="text-xs text-slate-300 flex items-start gap-2">
+                        <span className="text-amber-400 shrink-0 mt-0.5">+</span> {g}
+                      </li>
+                    ))}
+                  </ul>
+                  {!report.embedScore && (
+                    <button onClick={() => document.getElementById('embed-section')?.scrollIntoView({ behavior: 'smooth' })}
+                      className="mt-3 text-xs bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg font-semibold transition-colors">
+                      Get your free embed code ↓
+                    </button>
+                  )}
                 </div>
               )}
             </div>
