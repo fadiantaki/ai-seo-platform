@@ -112,6 +112,7 @@ export default function DashboardPage() {
       specialties: form.specialties.split('\n').filter(Boolean),
       certifications: [],
       plan: 'free',
+      status: 'pending',
       ai_searches: Math.floor(Math.random() * 300) + 50,
       top_queries: [],
       products: cleanProducts,

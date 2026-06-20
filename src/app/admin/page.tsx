@@ -19,6 +19,7 @@ export default function AdminPage() {
   const [loginPass, setLoginPass] = useState('');
   const [loginError, setLoginError] = useState('');
   const [brands, setBrands] = useState<FashionBrand[]>([]);
+  const [pending, setPending] = useState<any[]>([]);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && localStorage.getItem('aivisible_admin') === 'true') {
@@ -52,9 +53,18 @@ export default function AdminPage() {
 
   async function loadBrands() {
     setLoading(true);
+    // Load pending approvals
+    const { data: pendingData } = await supabase
+      .from('brands')
+      .select('*')
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false });
+    setPending(pendingData || []);
+
     const { data, error } = await supabase
       .from('brands')
       .select('*')
+      .or('status.eq.published,status.is.null')
       .order('created_at', { ascending: false });
     if (!error && data) {
       setBrands(data.map(b => ({
@@ -76,6 +86,18 @@ export default function AdminPage() {
       })));
     }
     setLoading(false);
+  }
+
+  async function approveBrand(id: string) {
+    await supabase.from('brands').update({ status: 'published' }).eq('id', id);
+    setPending(prev => prev.filter(b => b.id !== id));
+    loadBrands();
+  }
+
+  async function rejectBrand(id: string) {
+    if (!confirm('Delete this submission permanently?')) return;
+    await supabase.from('brands').delete().eq('id', id);
+    setPending(prev => prev.filter(b => b.id !== id));
   }
 
   const update = (k: keyof typeof form, v: unknown) => setForm(f => ({ ...f, [k]: v }));
@@ -104,6 +126,7 @@ export default function AdminPage() {
       specialties: form.specialties.split('\n').filter(Boolean),
       certifications: form.certifications.split('\n').filter(Boolean),
       plan: form.plan,
+      status: 'published',
       ai_searches: Math.floor(Math.random() * 500) + 100,
       top_queries: [],
     });
@@ -291,6 +314,46 @@ export default function AdminPage() {
                 className="flex-1 bg-purple-600 hover:bg-purple-500 disabled:opacity-40 disabled:cursor-not-allowed text-white py-3 rounded-xl font-semibold transition-colors">
                 {saving ? 'Saving...' : 'Save to database'}
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* Pending Approvals */}
+        {pending.length > 0 && (
+          <div className="mb-10">
+            <div className="flex items-center gap-3 mb-4">
+              <h2 className="text-xl font-bold text-amber-300">⏳ Pending Approvals</h2>
+              <span className="bg-amber-900/40 text-amber-300 border border-amber-700/30 text-xs px-2 py-0.5 rounded-full">{pending.length} waiting</span>
+            </div>
+            <div className="space-y-3">
+              {pending.map(brand => (
+                <div key={brand.id} className="bg-amber-950/20 border border-amber-700/30 rounded-2xl p-5 flex items-start justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-semibold">{brand.name}</span>
+                      {brand.is_local && <span className="text-xs bg-amber-900/40 text-amber-300 border border-amber-700/30 px-2 py-0.5 rounded-full">🇪🇬 Local</span>}
+                    </div>
+                    <p className="text-sm text-slate-400 mb-1 truncate">{brand.city} · {brand.website}</p>
+                    {brand.email && <p className="text-xs text-slate-500">📧 {brand.email}</p>}
+                    {brand.instagram && <p className="text-xs text-slate-500">📸 {brand.instagram}</p>}
+                    {brand.description && <p className="text-sm text-slate-400 mt-2 line-clamp-2">{brand.description}</p>}
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    <Link href={`/biz/${brand.slug}`} target="_blank"
+                      className="text-xs border border-white/20 hover:border-white/40 px-3 py-2 rounded-lg transition-colors">
+                      Preview →
+                    </Link>
+                    <button onClick={() => approveBrand(brand.id)}
+                      className="text-xs bg-green-700 hover:bg-green-600 text-white px-3 py-2 rounded-lg font-semibold transition-colors">
+                      ✓ Approve
+                    </button>
+                    <button onClick={() => rejectBrand(brand.id)}
+                      className="text-xs bg-red-900/60 hover:bg-red-800 text-red-300 px-3 py-2 rounded-lg font-semibold transition-colors">
+                      ✕ Reject
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}

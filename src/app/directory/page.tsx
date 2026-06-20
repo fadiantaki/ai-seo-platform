@@ -13,6 +13,7 @@ export default function DirectoryPage() {
 
   useEffect(() => {
     supabase.from('brands').select('*')
+      .or('status.eq.published,status.is.null')
       .order('is_local', { ascending: false })
       .order('ai_searches', { ascending: false })
       .then(({ data }) => setBrands(data ?? []));

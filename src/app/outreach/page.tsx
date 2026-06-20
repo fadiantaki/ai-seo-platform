@@ -70,13 +70,18 @@ Visit your profile, check your details, and paste the code on your site. If you 
 — The AIVisible Team
 hello@beaivisible.io
 instagram.com/aivisible_eg`);
-  const [bulkPreview, setBulkPreview] = useState<{ id: string; name: string; email: string; slug: string }[]>([]);
+  const [allRecipients, setAllRecipients] = useState<{ id: string; name: string; email: string; slug: string }[]>([]);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkSending, setBulkSending] = useState(false);
+  const [sendingId, setSendingId] = useState<string | null>(null);
   const [bulkResult, setBulkResult] = useState<{ sent: number; failed: number } | null>(null);
+  const [testEmail, setTestEmail] = useState('');
+  const [testSending, setTestSending] = useState(false);
+  const [testResult, setTestResult] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && localStorage.getItem('aivisible_admin') === 'true') {
-      setAuthed(true); localStorage.setItem('aivisible_admin', 'true');
+      setAuthed(true);
     }
   }, []);
 
@@ -88,33 +93,90 @@ instagram.com/aivisible_eg`);
       .then(({ data }) => setBrands(data || []));
   }, [authed]);
 
-  async function loadBulkPreview() {
+  async function loadRecipients() {
     const res = await fetch('/api/bulk-email', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ subject: bulkSubject, body: bulkBody, preview: true }),
     });
     const data = await res.json();
-    setBulkPreview(data.recipients || []);
+    const recipients = data.recipients || [];
+    setAllRecipients(recipients);
+    setSelectedIds(new Set(recipients.map((r: { id: string }) => r.id)));
+  }
+
+  function toggleSelect(id: string) {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  function toggleAll() {
+    if (selectedIds.size === allRecipients.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(allRecipients.map(r => r.id)));
+    }
   }
 
   async function sendBulkEmail() {
-    if (!confirm(`Send to ${bulkPreview.length} brands? This cannot be undone.`)) return;
+    const targets = allRecipients.filter(r => selectedIds.has(r.id));
+    if (!confirm(`Send to ${targets.length} selected brands? This cannot be undone.`)) return;
     setBulkSending(true);
     setBulkResult(null);
     const res = await fetch('/api/bulk-email', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ subject: bulkSubject, body: bulkBody }),
+      body: JSON.stringify({ subject: bulkSubject, body: bulkBody, ids: targets.map(t => t.id) }),
     });
     const data = await res.json();
     setBulkResult({ sent: data.sent, failed: data.failed });
     setBulkSending(false);
-    // Refresh brand list
     const { data: fresh } = await supabase.from('brands')
       .select('id, slug, name, email, embed_installed, embed_last_seen, embed_domain, outreach_sent, outreach_sent_at, plan')
       .order('name');
     if (fresh) setBrands(fresh);
+  }
+
+  async function sendSingleEmail(brand: BrandRow) {
+    if (!brand.email) return;
+    setSendingId(brand.id);
+    const res = await fetch('/api/bulk-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subject: bulkSubject, body: bulkBody, ids: [brand.id] }),
+    });
+    const data = await res.json();
+    setSendingId(null);
+    if (data.sent > 0) {
+      setBrands(prev => prev.map(b => b.id === brand.id
+        ? { ...b, outreach_sent: true, outreach_sent_at: new Date().toISOString() }
+        : b
+      ));
+      alert(`✓ Email sent to ${brand.name}`);
+    } else {
+      alert(`✗ Failed to send to ${brand.name}`);
+    }
+  }
+
+  async function sendTestEmail() {
+    if (!testEmail) return;
+    setTestSending(true);
+    setTestResult(null);
+    const res = await fetch('/api/bulk-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        subject: bulkSubject,
+        body: bulkBody,
+        testEmail,
+      }),
+    });
+    const data = await res.json();
+    setTestResult(data.sent > 0 ? `✓ Test sent to ${testEmail}` : `✗ Failed: ${data.error || 'unknown error'}`);
+    setTestSending(false);
   }
 
   async function markOutreachSent(brandId: string) {
@@ -204,7 +266,7 @@ instagram.com/aivisible_eg`);
               className={`px-5 py-2 rounded-xl font-semibold text-sm transition-all ${activeTab === 'tracker' ? 'bg-purple-600 text-white' : 'bg-white/5 text-slate-400 hover:text-white'}`}>
               Instagram Tracker
             </button>
-            <button onClick={() => { setActiveTab('bulk-email'); loadBulkPreview(); }}
+            <button onClick={() => { setActiveTab('bulk-email'); loadRecipients(); }}
               className={`px-5 py-2 rounded-xl font-semibold text-sm transition-all ${activeTab === 'bulk-email' ? 'bg-purple-600 text-white' : 'bg-white/5 text-slate-400 hover:text-white'}`}>
               📧 Bulk Email
             </button>
@@ -228,199 +290,245 @@ instagram.com/aivisible_eg`);
 
         {/* Bulk Email Panel */}
         {activeTab === 'bulk-email' && (
-          <div>
-            <div className="grid md:grid-cols-2 gap-8">
-              {/* Compose */}
-              <div className="space-y-5">
-                <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">Subject line</label>
-                  <input
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 text-sm"
-                    value={bulkSubject}
-                    onChange={e => setBulkSubject(e.target.value)}
-                    placeholder="Subject..."
-                  />
-                  <p className="text-xs text-slate-500 mt-1">Use <code className="text-purple-400">{'{name}'}</code> for brand name</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">Email body</label>
-                  <textarea
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 text-sm min-h-64 resize-y font-mono"
-                    value={bulkBody}
-                    onChange={e => setBulkBody(e.target.value)}
-                  />
-                  <p className="text-xs text-slate-500 mt-1">
-                    Variables: <code className="text-purple-400">{'{name}'}</code> · <code className="text-purple-400">{'{profile_url}'}</code> · <code className="text-purple-400">{'{embed_code}'}</code>
-                  </p>
-                </div>
-
-                {bulkResult && (
-                  <div className={`rounded-xl px-4 py-3 text-sm ${bulkResult.failed === 0 ? 'bg-green-900/40 border border-green-700/50 text-green-300' : 'bg-yellow-900/40 border border-yellow-700/50 text-yellow-300'}`}>
-                    ✓ Sent: {bulkResult.sent} · Failed: {bulkResult.failed}
-                  </div>
-                )}
-
-                <button
-                  onClick={sendBulkEmail}
-                  disabled={bulkSending || bulkPreview.length === 0}
-                  className="w-full bg-purple-600 hover:bg-purple-500 disabled:opacity-40 disabled:cursor-not-allowed text-white py-3 rounded-xl font-semibold transition-colors">
-                  {bulkSending ? 'Sending...' : `Send to ${bulkPreview.length} brands with emails`}
-                </button>
+          <div className="grid md:grid-cols-2 gap-8">
+            {/* Compose */}
+            <div className="space-y-5">
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Subject line</label>
+                <input
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 text-sm"
+                  value={bulkSubject}
+                  onChange={e => setBulkSubject(e.target.value)}
+                />
+                <p className="text-xs text-slate-500 mt-1">Use <code className="text-purple-400">{'{name}'}</code> for brand name</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Email body</label>
+                <textarea
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 text-sm min-h-64 resize-y font-mono"
+                  value={bulkBody}
+                  onChange={e => setBulkBody(e.target.value)}
+                />
+                <p className="text-xs text-slate-500 mt-1">
+                  Variables: <code className="text-purple-400">{'{name}'}</code> · <code className="text-purple-400">{'{profile_url}'}</code> · <code className="text-purple-400">{'{embed_code}'}</code>
+                </p>
               </div>
 
-              {/* Recipients */}
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-semibold text-sm text-slate-300">Recipients ({bulkPreview.length})</h3>
-                  <button onClick={loadBulkPreview} className="text-xs text-purple-400 hover:text-purple-300">Refresh</button>
+              {/* Test email */}
+              <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3">
+                <p className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Send test email</p>
+                <div className="flex gap-2">
+                  <input
+                    type="email"
+                    className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 text-sm"
+                    placeholder="your@email.com"
+                    value={testEmail}
+                    onChange={e => setTestEmail(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && sendTestEmail()}
+                  />
+                  <button
+                    onClick={sendTestEmail}
+                    disabled={testSending || !testEmail}
+                    className="bg-slate-700 hover:bg-slate-600 disabled:opacity-40 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors whitespace-nowrap">
+                    {testSending ? 'Sending...' : 'Send test'}
+                  </button>
                 </div>
-                <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden max-h-[480px] overflow-y-auto">
-                  {bulkPreview.length === 0 ? (
-                    <div className="text-center py-8 text-slate-500 text-sm">No brands with emails yet</div>
-                  ) : (
-                    <table className="w-full text-sm">
-                      <thead className="border-b border-white/10">
-                        <tr className="text-slate-400 text-xs">
-                          <th className="text-left px-4 py-2 font-medium">Brand</th>
-                          <th className="text-left px-4 py-2 font-medium">Email</th>
+                {testResult && (
+                  <p className={`text-xs ${testResult.startsWith('✓') ? 'text-green-400' : 'text-red-400'}`}>{testResult}</p>
+                )}
+              </div>
+
+              {bulkResult && (
+                <div className={`rounded-xl px-4 py-3 text-sm ${bulkResult.failed === 0 ? 'bg-green-900/40 border border-green-700/50 text-green-300' : 'bg-yellow-900/40 border border-yellow-700/50 text-yellow-300'}`}>
+                  ✓ Sent: {bulkResult.sent} · Failed: {bulkResult.failed}
+                </div>
+              )}
+
+              <button
+                onClick={sendBulkEmail}
+                disabled={bulkSending || selectedIds.size === 0}
+                className="w-full bg-purple-600 hover:bg-purple-500 disabled:opacity-40 disabled:cursor-not-allowed text-white py-3 rounded-xl font-semibold transition-colors">
+                {bulkSending ? 'Sending...' : `Send to ${selectedIds.size} selected brand${selectedIds.size !== 1 ? 's' : ''}`}
+              </button>
+            </div>
+
+            {/* Recipients with checkboxes */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold text-sm text-slate-300">
+                  Recipients — <span className="text-purple-400">{selectedIds.size} selected</span> of {allRecipients.length}
+                </h3>
+                <div className="flex gap-3">
+                  <button onClick={toggleAll} className="text-xs text-purple-400 hover:text-purple-300">
+                    {selectedIds.size === allRecipients.length ? 'Deselect all' : 'Select all'}
+                  </button>
+                  <button onClick={loadRecipients} className="text-xs text-slate-400 hover:text-white">Refresh</button>
+                </div>
+              </div>
+              <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden max-h-[520px] overflow-y-auto">
+                {allRecipients.length === 0 ? (
+                  <div className="text-center py-8 text-slate-500 text-sm">No brands with emails yet</div>
+                ) : (
+                  <table className="w-full text-sm">
+                    <thead className="border-b border-white/10 sticky top-0 bg-slate-900">
+                      <tr className="text-slate-400 text-xs">
+                        <th className="px-3 py-2 w-8">
+                          <input type="checkbox"
+                            checked={selectedIds.size === allRecipients.length && allRecipients.length > 0}
+                            onChange={toggleAll}
+                            className="rounded accent-purple-500"
+                          />
+                        </th>
+                        <th className="text-left px-3 py-2 font-medium">Brand</th>
+                        <th className="text-left px-3 py-2 font-medium">Email</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {allRecipients.map(r => (
+                        <tr key={r.id} className={`border-b border-white/5 cursor-pointer hover:bg-white/5 ${selectedIds.has(r.id) ? 'bg-purple-900/10' : ''}`}
+                          onClick={() => toggleSelect(r.id)}>
+                          <td className="px-3 py-2">
+                            <input type="checkbox" checked={selectedIds.has(r.id)} onChange={() => toggleSelect(r.id)}
+                              onClick={e => e.stopPropagation()} className="rounded accent-purple-500" />
+                          </td>
+                          <td className="px-3 py-2 text-white font-medium">{r.name}</td>
+                          <td className="px-3 py-2 text-slate-400 text-xs">{r.email}</td>
                         </tr>
-                      </thead>
-                      <tbody>
-                        {bulkPreview.map(b => (
-                          <tr key={b.id} className="border-b border-white/5">
-                            <td className="px-4 py-2 text-white">{b.name}</td>
-                            <td className="px-4 py-2 text-slate-400 text-xs">{b.email}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  )}
-                </div>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
               </div>
             </div>
           </div>
         )}
 
         {activeTab === 'tracker' && <>
-        {/* Filter tabs */}
-        <div className="flex gap-2 mb-6">
-          {(['all', 'pending', 'sent', 'installed'] as const).map(f => (
-            <button key={f} onClick={() => setFilter(f)}
-              className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors capitalize ${filter === f ? 'bg-purple-600 text-white' : 'bg-white/5 text-slate-400 hover:text-white'}`}>
-              {f}
-            </button>
-          ))}
-        </div>
+          {/* Filter tabs */}
+          <div className="flex gap-2 mb-6">
+            {(['all', 'pending', 'sent', 'installed'] as const).map(f => (
+              <button key={f} onClick={() => setFilter(f)}
+                className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors capitalize ${filter === f ? 'bg-purple-600 text-white' : 'bg-white/5 text-slate-400 hover:text-white'}`}>
+                {f}
+              </button>
+            ))}
+          </div>
 
-        {/* DM Template modal */}
-        {dmBrand && (
-          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-            <div className="bg-slate-900 border border-white/10 rounded-2xl p-6 max-w-lg w-full">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="font-bold text-lg">DM Template — {dmBrand.name}</h2>
-                <button onClick={() => setDmBrand(null)} className="text-slate-400 hover:text-white text-xl">×</button>
-              </div>
-              <div className="text-xs text-purple-300 mb-2">Send to: {dmBrand.instagram}</div>
-              <pre className="bg-black/40 rounded-xl p-4 text-sm text-slate-300 whitespace-pre-wrap mb-4 leading-relaxed">
-                {instagramDMTemplate(dmBrand.name, dmBrand.slug)}
-              </pre>
-              <div className="flex gap-3">
-                <button onClick={() => copyDM(dmBrand.name, dmBrand.slug)}
-                  className="flex-1 bg-purple-600 hover:bg-purple-500 text-white py-2 rounded-lg font-medium text-sm transition-colors">
-                  {copied ? '✓ Copied!' : 'Copy message'}
-                </button>
-                <button
-                  onClick={async () => {
-                    const brand = brands.find(b => b.slug === dmBrand.slug);
-                    if (brand) { await markOutreachSent(brand.id); }
-                    setDmBrand(null);
-                  }}
-                  className="flex-1 bg-green-700 hover:bg-green-600 text-white py-2 rounded-lg font-medium text-sm transition-colors">
-                  Mark as sent
-                </button>
+          {/* DM Template modal */}
+          {dmBrand && (
+            <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+              <div className="bg-slate-900 border border-white/10 rounded-2xl p-6 max-w-lg w-full">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="font-bold text-lg">DM Template — {dmBrand.name}</h2>
+                  <button onClick={() => setDmBrand(null)} className="text-slate-400 hover:text-white text-xl">×</button>
+                </div>
+                <div className="text-xs text-purple-300 mb-2">Send to: {dmBrand.instagram}</div>
+                <pre className="bg-black/40 rounded-xl p-4 text-sm text-slate-300 whitespace-pre-wrap mb-4 leading-relaxed">
+                  {instagramDMTemplate(dmBrand.name, dmBrand.slug)}
+                </pre>
+                <div className="flex gap-3">
+                  <button onClick={() => copyDM(dmBrand.name, dmBrand.slug)}
+                    className="flex-1 bg-purple-600 hover:bg-purple-500 text-white py-2 rounded-lg font-medium text-sm transition-colors">
+                    {copied ? '✓ Copied!' : 'Copy message'}
+                  </button>
+                  <button
+                    onClick={async () => {
+                      const brand = brands.find(b => b.slug === dmBrand.slug);
+                      if (brand) { await markOutreachSent(brand.id); }
+                      setDmBrand(null);
+                    }}
+                    className="flex-1 bg-green-700 hover:bg-green-600 text-white py-2 rounded-lg font-medium text-sm transition-colors">
+                    Mark as sent
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        )}
-
-        {/* Brands table */}
-        <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-white/10 text-slate-400">
-                <th className="text-left px-4 py-3 font-medium">Brand</th>
-                <th className="text-left px-4 py-3 font-medium">Instagram</th>
-                <th className="text-left px-4 py-3 font-medium">Outreach</th>
-                <th className="text-left px-4 py-3 font-medium">Embed</th>
-                <th className="text-left px-4 py-3 font-medium">Domain</th>
-                <th className="text-left px-4 py-3 font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map(brand => {
-                const contact = contactMap[brand.slug];
-                return (
-                  <tr key={brand.id} className="border-b border-white/5 hover:bg-white/3">
-                    <td className="px-4 py-3">
-                      <div className="font-medium">{brand.name}</div>
-                      {contact?.type === 'local' && (
-                        <div className="text-xs text-purple-400">Local brand</div>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-slate-400">
-                      {contact?.instagram || '—'}
-                    </td>
-                    <td className="px-4 py-3">
-                      {brand.outreach_sent ? (
-                        <span className="text-blue-400 text-xs">
-                          ✓ Sent {brand.outreach_sent_at ? new Date(brand.outreach_sent_at).toLocaleDateString() : ''}
-                        </span>
-                      ) : (
-                        <span className="text-yellow-400 text-xs">⏳ Pending</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      {brand.embed_installed ? (
-                        <span className="text-green-400 text-xs">
-                          ✓ Installed {brand.embed_last_seen ? new Date(brand.embed_last_seen).toLocaleDateString() : ''}
-                        </span>
-                      ) : (
-                        <span className="text-slate-500 text-xs">Not installed</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-slate-400 text-xs">
-                      {brand.embed_domain || '—'}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex gap-2">
-                        {contact && (
-                          <button
-                            onClick={() => setDmBrand({ name: brand.name, slug: brand.slug, instagram: contact.instagram })}
-                            className="text-xs bg-purple-600/30 hover:bg-purple-600/60 text-purple-300 px-2 py-1 rounded transition-colors">
-                            View DM
-                          </button>
-                        )}
-                        {!brand.outreach_sent && (
-                          <button onClick={() => markOutreachSent(brand.id)}
-                            className="text-xs bg-blue-600/30 hover:bg-blue-600/60 text-blue-300 px-2 py-1 rounded transition-colors">
-                            Mark sent
-                          </button>
-                        )}
-                        <Link href={`/biz/${brand.slug}`}
-                          className="text-xs bg-white/5 hover:bg-white/10 text-slate-400 px-2 py-1 rounded transition-colors">
-                          Profile
-                        </Link>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-          {filtered.length === 0 && (
-            <div className="text-center py-12 text-slate-500">No brands in this filter.</div>
           )}
-        </div>
+
+          {/* Brands table */}
+          <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-white/10 text-slate-400">
+                  <th className="text-left px-4 py-3 font-medium">Brand</th>
+                  <th className="text-left px-4 py-3 font-medium">Instagram</th>
+                  <th className="text-left px-4 py-3 font-medium">Outreach</th>
+                  <th className="text-left px-4 py-3 font-medium">Embed</th>
+                  <th className="text-left px-4 py-3 font-medium">Domain</th>
+                  <th className="text-left px-4 py-3 font-medium">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map(brand => {
+                  const contact = contactMap[brand.slug];
+                  return (
+                    <tr key={brand.id} className="border-b border-white/5 hover:bg-white/3">
+                      <td className="px-4 py-3">
+                        <div className="font-medium">{brand.name}</div>
+                        {brand.email && <div className="text-xs text-slate-500">{brand.email}</div>}
+                      </td>
+                      <td className="px-4 py-3 text-slate-400 text-xs">
+                        {contact?.instagram || '—'}
+                      </td>
+                      <td className="px-4 py-3">
+                        {brand.outreach_sent ? (
+                          <span className="text-blue-400 text-xs">
+                            ✓ Sent {brand.outreach_sent_at ? new Date(brand.outreach_sent_at).toLocaleDateString() : ''}
+                          </span>
+                        ) : (
+                          <span className="text-yellow-400 text-xs">⏳ Pending</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        {brand.embed_installed ? (
+                          <span className="text-green-400 text-xs">
+                            ✓ Installed {brand.embed_last_seen ? new Date(brand.embed_last_seen).toLocaleDateString() : ''}
+                          </span>
+                        ) : (
+                          <span className="text-slate-500 text-xs">Not installed</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-slate-400 text-xs">
+                        {brand.embed_domain || '—'}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex gap-2 flex-wrap">
+                          {brand.email && (
+                            <button
+                              onClick={() => sendSingleEmail(brand)}
+                              disabled={sendingId === brand.id}
+                              className="text-xs bg-green-600/30 hover:bg-green-600/60 text-green-300 px-2 py-1 rounded transition-colors disabled:opacity-40">
+                              {sendingId === brand.id ? '...' : '📧 Send email'}
+                            </button>
+                          )}
+                          {contact && (
+                            <button
+                              onClick={() => setDmBrand({ name: brand.name, slug: brand.slug, instagram: contact.instagram })}
+                              className="text-xs bg-purple-600/30 hover:bg-purple-600/60 text-purple-300 px-2 py-1 rounded transition-colors">
+                              View DM
+                            </button>
+                          )}
+                          {!brand.outreach_sent && (
+                            <button onClick={() => markOutreachSent(brand.id)}
+                              className="text-xs bg-blue-600/30 hover:bg-blue-600/60 text-blue-300 px-2 py-1 rounded transition-colors">
+                              Mark sent
+                            </button>
+                          )}
+                          <Link href={`/biz/${brand.slug}`}
+                            className="text-xs bg-white/5 hover:bg-white/10 text-slate-400 px-2 py-1 rounded transition-colors">
+                            Profile
+                          </Link>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            {filtered.length === 0 && (
+              <div className="text-center py-12 text-slate-500">No brands in this filter.</div>
+            )}
+          </div>
         </>}
       </div>
     </main>

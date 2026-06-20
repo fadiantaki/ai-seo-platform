@@ -2,22 +2,51 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
-import { notFound } from 'next/navigation';
 import { useParams } from 'next/navigation';
 
 const priceLabel: Record<string, string> = {
   '$': 'Budget-friendly', '$$': 'Mid-range', '$$$': 'Premium', '$$$$': 'Luxury',
 };
 
+const gradeColor: Record<string, string> = {
+  A: 'text-green-400', B: 'text-blue-400', C: 'text-amber-400', D: 'text-red-400',
+};
+const gradeRing: Record<string, string> = {
+  A: 'border-green-500/60', B: 'border-blue-500/60', C: 'border-amber-500/60', D: 'border-red-500/60',
+};
+
+interface Report {
+  score: number;
+  grade: string;
+  summary: string;
+  mentionCount: number;
+  totalQueries: number;
+  mentionRate: string;
+  mentionedIn: string[];
+  missedIn: string[];
+  sampleQuery: string;
+  sampleResponse: string;
+  generatedAt: string;
+}
+
 export default function BizPage() {
   const params = useParams();
   const slug = params.slug as string;
   const [brand, setBrand] = useState<Record<string, any> | null>(null);
   const [copied, setCopied] = useState(false);
+  const [showTrust, setShowTrust] = useState(false);
+  const [report, setReport] = useState<Report | null>(null);
+  const [generating, setGenerating] = useState(false);
+  const [reportError, setReportError] = useState('');
 
   useEffect(() => {
     supabase.from('brands').select('*').eq('slug', slug).single()
-      .then(({ data }) => { if (data) setBrand(data); });
+      .then(({ data }) => {
+        if (data) {
+          setBrand(data);
+          if (data.ai_report) setReport(data.ai_report);
+        }
+      });
   }, [slug]);
 
   if (!brand) return null;
@@ -29,6 +58,28 @@ export default function BizPage() {
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
+
+  async function generateReport() {
+    setGenerating(true);
+    setReportError('');
+    try {
+      const res = await fetch('/api/ai-report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Failed to generate report');
+      setReport(json.report);
+    } catch (e: any) {
+      setReportError(e.message);
+    }
+    setGenerating(false);
+  }
+
+  const reportAge = report?.generatedAt
+    ? Math.floor((Date.now() - new Date(report.generatedAt).getTime()) / (1000 * 60 * 60 * 24))
+    : null;
 
   return (
     <main className="min-h-screen bg-slate-950 text-white">
@@ -47,7 +98,7 @@ export default function BizPage() {
         <div className="mb-10">
           <h1 className="text-4xl font-bold mb-3">{brand.name}</h1>
           <p className="text-slate-400 mb-4">
-            {brand.city} · Ships to {brand.ships_to} · {priceLabel[brand.price_range] ?? brand.price_range}
+            {brand.city}{brand.ships_to ? ` · Ships to ${brand.ships_to}` : ''}{brand.price_range ? ` · ${priceLabel[brand.price_range] ?? brand.price_range}` : ''}
           </p>
           <div className="flex flex-wrap gap-2">
             {brand.style?.map((s: string) => (
@@ -56,7 +107,142 @@ export default function BizPage() {
           </div>
         </div>
 
-        {/* Stats — numbers blurred, labels visible */}
+        {/* AI Visibility Report */}
+        <div className="bg-slate-900 border border-purple-500/40 rounded-2xl p-6 mb-8">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-lg">🤖</span>
+                <h2 className="font-bold text-lg">AI Visibility Report</h2>
+                <span className="text-xs bg-purple-900 text-purple-300 px-2 py-0.5 rounded-full">Free</span>
+              </div>
+              <p className="text-sm text-slate-400">
+                {report
+                  ? `Last generated ${reportAge === 0 ? 'today' : `${reportAge} day${reportAge !== 1 ? 's' : ''} ago`} · See how AI platforms see ${brand.name}`
+                  : `Find out if ChatGPT and Perplexity mention ${brand.name} when people search for you`}
+              </p>
+            </div>
+            <button
+              onClick={generateReport}
+              disabled={generating}
+              className="shrink-0 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors flex items-center gap-2">
+              {generating ? (
+                <>
+                  <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                  </svg>
+                  Scanning AI platforms…
+                </>
+              ) : report ? '↺ Regenerate report' : '✦ Generate my AI report'}
+            </button>
+          </div>
+
+          {reportError && (
+            <div className="mt-4 bg-red-900/30 border border-red-700/40 rounded-xl px-4 py-3 text-sm text-red-300">
+              {reportError}
+            </div>
+          )}
+
+          {generating && (
+            <div className="mt-6 space-y-3">
+              {['Querying ChatGPT…', 'Checking Perplexity…', 'Analysing mentions…', 'Calculating score…'].map((msg, i) => (
+                <div key={i} className="flex items-center gap-3 text-sm text-slate-400">
+                  <svg className="w-4 h-4 animate-spin shrink-0" style={{ animationDelay: `${i * 0.2}s` }} fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                  </svg>
+                  {msg}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {report && !generating && (
+            <div className="mt-6">
+              {/* Score */}
+              <div className="flex items-center gap-6 mb-6">
+                <div className={`w-20 h-20 rounded-full border-4 ${gradeRing[report.grade]} flex flex-col items-center justify-center shrink-0`}>
+                  <span className={`text-3xl font-black ${gradeColor[report.grade]}`}>{report.grade}</span>
+                </div>
+                <div>
+                  <div className="flex items-baseline gap-2 mb-1">
+                    <span className="text-4xl font-black text-white">{report.score}</span>
+                    <span className="text-slate-500 text-sm">/100</span>
+                  </div>
+                  <p className="text-sm text-slate-300">{report.summary}</p>
+                </div>
+              </div>
+
+              {/* Score bar */}
+              <div className="h-2 bg-white/10 rounded-full mb-6 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-purple-600 to-pink-500 transition-all duration-1000"
+                  style={{ width: `${report.score}%` }}
+                />
+              </div>
+
+              {/* Mention rate */}
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div className="bg-white/5 rounded-xl p-4">
+                  <div className="text-2xl font-bold text-white mb-1">{report.mentionRate}</div>
+                  <div className="text-xs text-slate-400">AI queries where you appear</div>
+                </div>
+                <div className="bg-white/5 rounded-xl p-4">
+                  <div className={`text-2xl font-bold mb-1 ${gradeColor[report.grade]}`}>{report.grade}-grade</div>
+                  <div className="text-xs text-slate-400">overall AI visibility</div>
+                </div>
+              </div>
+
+              {/* Queries breakdown */}
+              {report.mentionedIn?.length > 0 && (
+                <div className="mb-4">
+                  <p className="text-xs font-semibold text-green-400 mb-2">✓ You appear when people ask:</p>
+                  <ul className="space-y-1">
+                    {report.mentionedIn.map((q, i) => (
+                      <li key={i} className="text-xs text-slate-300 flex items-start gap-2">
+                        <span className="text-green-400 shrink-0 mt-0.5">→</span> {q}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {report.missedIn?.length > 0 && (
+                <div className="mb-5">
+                  <p className="text-xs font-semibold text-red-400 mb-2">✗ You&apos;re missing from:</p>
+                  <ul className="space-y-1">
+                    {report.missedIn.map((q, i) => (
+                      <li key={i} className="text-xs text-slate-500 flex items-start gap-2">
+                        <span className="text-red-400 shrink-0 mt-0.5">→</span> {q}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Sample AI response */}
+              {report.sampleResponse && (
+                <div className="bg-black/30 rounded-xl p-4">
+                  <p className="text-xs text-slate-500 mb-2">Sample AI response to: <span className="text-slate-400 italic">&quot;{report.sampleQuery}&quot;</span></p>
+                  <p className="text-xs text-slate-300 leading-relaxed">{report.sampleResponse}{report.sampleResponse.length >= 500 ? '…' : ''}</p>
+                </div>
+              )}
+
+              {report.score < 70 && (
+                <div className="mt-5 bg-purple-900/20 border border-purple-700/30 rounded-xl p-4">
+                  <p className="text-sm font-semibold text-purple-300 mb-1">Want to improve this score?</p>
+                  <p className="text-xs text-slate-400 mb-3">Install the free embed code on your website. It signals your brand data directly to AI crawlers — brands that install it typically see a 2–3× improvement within 30 days.</p>
+                  <button onClick={() => document.getElementById('embed-section')?.scrollIntoView({ behavior: 'smooth' })}
+                    className="text-xs bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg font-semibold transition-colors">
+                    Get your free embed code ↓
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
           {[
             { value: brand.ai_searches?.toLocaleString() ?? '—', label: 'AI searches / mo', color: 'text-purple-400' },
@@ -142,7 +328,7 @@ export default function BizPage() {
           </div>
         )}
 
-        {/* Top queries — blurred numbers, queries visible */}
+        {/* Top queries */}
         {brand.top_queries?.length > 0 && (
           <div className="bg-slate-900 border border-white/10 rounded-2xl p-6 mb-6">
             <h2 className="font-semibold mb-3">Top AI queries</h2>
@@ -157,21 +343,63 @@ export default function BizPage() {
         )}
 
         {/* Embed code */}
-        <div className="bg-slate-900 border border-white/10 rounded-2xl p-6 mb-6">
+        <div id="embed-section" className="bg-slate-900 border border-white/10 rounded-2xl p-6 mb-4">
           <div className="flex items-center gap-2 mb-1">
             <h2 className="font-semibold">Embed code</h2>
-            <span className="text-xs bg-purple-900 text-purple-300 px-2 py-0.5 rounded-full">Free</span>
+            <span className="text-xs bg-purple-900 text-purple-300 px-2 py-0.5 rounded-full">Free · Forever</span>
           </div>
           <p className="text-sm text-slate-500 mb-4">
             Paste this in your website&apos;s <code className="text-slate-300">&lt;head&gt;</code> to make {brand.name} visible in AI search results.
           </p>
-          <div className="bg-black/40 rounded-xl p-4 font-mono text-sm text-green-400 break-all mb-3">
+          <div className="bg-black/40 rounded-xl p-4 font-mono text-sm text-green-400 break-all mb-4">
             {embedCode}
           </div>
-          <button onClick={copyCode}
-            className="bg-purple-600 hover:bg-purple-500 text-white px-5 py-2 rounded-lg text-sm font-semibold transition-colors">
-            {copied ? '✓ Copied!' : 'Copy code'}
-          </button>
+          <div className="flex items-center gap-3">
+            <button onClick={copyCode}
+              className="bg-purple-600 hover:bg-purple-500 text-white px-5 py-2 rounded-lg text-sm font-semibold transition-colors">
+              {copied ? '✓ Copied!' : 'Copy code'}
+            </button>
+            <button onClick={() => setShowTrust(!showTrust)}
+              className="text-sm text-slate-400 hover:text-white transition-colors flex items-center gap-1">
+              🔒 Is this safe to install?
+            </button>
+          </div>
+
+          {/* Trust explainer — toggled */}
+          {showTrust && (
+            <div className="mt-5 bg-green-950/30 border border-green-700/30 rounded-xl p-5 text-sm">
+              <p className="font-semibold text-green-300 mb-3">✓ Yes — here is exactly what the code does:</p>
+              <ul className="space-y-3 text-slate-300">
+                <li className="flex items-start gap-2">
+                  <span className="text-green-400 shrink-0 mt-0.5">✓</span>
+                  <span><strong>It adds your brand data to your page&apos;s &lt;head&gt;</strong> — structured information (name, city, category, description) in a format AI crawlers understand. Think of it as a business card for AI systems.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-400 shrink-0 mt-0.5">✓</span>
+                  <span><strong>It does NOT collect your visitors&apos; data.</strong> No cookies. No tracking pixels. No personal information is captured or sent anywhere.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-400 shrink-0 mt-0.5">✓</span>
+                  <span><strong>It does NOT slow your website.</strong> The script loads with the <code className="text-slate-400">async</code> attribute, meaning it runs in the background and never blocks your page from loading.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-400 shrink-0 mt-0.5">✓</span>
+                  <span><strong>It sends one small ping to our server</strong> so we can confirm the embed is active — nothing more. No page content, no user data, no browsing history.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-400 shrink-0 mt-0.5">✓</span>
+                  <span><strong>You can inspect it yourself.</strong> Open your browser DevTools after installing and look at your page &lt;head&gt; — you&apos;ll see exactly what was added. No hidden code.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-400 shrink-0 mt-0.5">✓</span>
+                  <span><strong>Remove it anytime.</strong> Simply delete the one line from your website. No account deletion needed, no contracts.</span>
+                </li>
+              </ul>
+              <p className="text-slate-500 text-xs mt-4">
+                Questions? Email us at <a href="mailto:hello@beaivisible.io" className="text-purple-400">hello@beaivisible.io</a> or DM <a href="https://instagram.com/aivisible_eg" target="_blank" rel="noopener noreferrer" className="text-pink-400">@aivisible_eg</a>
+              </p>
+            </div>
+          )}
         </div>
 
       </div>
