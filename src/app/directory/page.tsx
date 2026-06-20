@@ -77,7 +77,8 @@ export default function DirectoryPage() {
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-3">Egyptian Business Directory</h1>
           <p className="text-slate-400 max-w-xl">
-            Is your business in the list below? Simply click on it, copy your free optimization code, and embed it on your website to start appearing in AI search results.
+            Is your business in the list below? Simply click on it, copy your free optimization code, and embed it on your website to start appearing in AI search results. Don&apos;t see your brand?{' '}
+            <Link href="/dashboard" className="text-purple-400 hover:text-purple-300 underline underline-offset-2 transition-colors">Register your brand</Link> — it&apos;s free.
           </p>
         </div>
 
