@@ -1,13 +1,33 @@
 export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+
+async function getSupabaseBrands() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const res = await fetch(
+    `${url}/rest/v1/brands?select=id,name,email,slug&email=not.is.null&order=name`,
+    { headers: { apikey: key!, Authorization: `Bearer ${key}` } }
+  );
+  return res.json() as Promise<{ id: string; name: string; email: string; slug: string }[]>;
+}
+
+async function markOutreachSent(id: string) {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  await fetch(`${url}/rest/v1/brands?id=eq.${id}`, {
+    method: 'PATCH',
+    headers: {
+      apikey: key!,
+      Authorization: `Bearer ${key}`,
+      'Content-Type': 'application/json',
+      Prefer: 'return=minimal',
+    },
+    body: JSON.stringify({ outreach_sent: true, outreach_sent_at: new Date().toISOString() }),
+  });
+}
 
 export async function POST(req: NextRequest) {
-  const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
   if (!process.env.RESEND_API_KEY) {
     return NextResponse.json({ error: 'Email not configured' }, { status: 503 });
   }
@@ -17,17 +37,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Missing subject or body' }, { status: 400 });
   }
 
-  // Just preview — return list of recipients without sending
-  if (preview) {
-    const { data } = await supabaseAdmin.from('brands').select('id, name, email, slug').not('email', 'is', null).order('name');
-    return NextResponse.json({ recipients: data || [] });
-  }
+  const brands = await getSupabaseBrands();
 
-  const { data: brands } = await supabaseAdmin
-    .from('brands')
-    .select('id, name, email, slug')
-    .not('email', 'is', null)
-    .order('name');
+  if (preview) {
+    return NextResponse.json({ recipients: brands });
+  }
 
   if (!brands || brands.length === 0) {
     return NextResponse.json({ error: 'No brands with emails found' }, { status: 404 });
@@ -42,17 +56,16 @@ export async function POST(req: NextRequest) {
       .replace(/\{profile_url\}/g, `https://beaivisible.io/biz/${brand.slug}`)
       .replace(/\{embed_code\}/g, `<script src="https://beaivisible.io/api/embed/${brand.slug}" async></script>`);
 
-    // Convert plain text to HTML: paragraphs, --- dividers, 👉 CTA links, embed code block
     const htmlBody = personalizedBody
       .split('\n\n')
       .map((para: string) => {
         const trimmed = para.trim();
         if (trimmed === '---') return '<hr style="border:none;border-top:1px solid #1e293b;margin:28px 0;" />';
-        if (trimmed.startsWith('{embed_code}') || trimmed.includes('<script')) {
-          return `<div style="background:#000;border-radius:10px;padding:16px;font-family:monospace;font-size:13px;color:#4ade80;word-break:break-all;margin:8px 0;">${trimmed.replace('{embed_code}', `&lt;script src="https://beaivisible.io/api/embed/${brand.slug}" async&gt;&lt;/script&gt;`)}</div>`;
+        if (trimmed.includes('<script')) {
+          return `<div style="background:#000;border-radius:10px;padding:16px;font-family:monospace;font-size:13px;color:#4ade80;word-break:break-all;margin:8px 0;">${trimmed.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>`;
         }
         if (trimmed.startsWith('👉')) {
-          return `<p style="margin:16px 0;font-size:16px;font-weight:700;">${trimmed.replace(/👉\s*/, '👉 ').replace(/(https?:\/\/\S+)/, '<a href="$1" style="color:#a78bfa;">$1</a>')}</p>`;
+          return `<p style="margin:16px 0;font-size:16px;font-weight:700;">${trimmed.replace(/(https?:\/\/\S+)/, '<a href="$1" style="color:#a78bfa;">$1</a>')}</p>`;
         }
         if (trimmed.startsWith('TO APPEAR IN AI SEARCH')) {
           return `<p style="margin:16px 0;font-weight:800;font-size:15px;color:#a78bfa;">${trimmed}</p>`;
@@ -61,14 +74,13 @@ export async function POST(req: NextRequest) {
       })
       .join('');
 
-    const html = `
-<!DOCTYPE html>
+    const html = `<!DOCTYPE html>
 <html>
 <body style="font-family:Arial,sans-serif;background:#0f172a;color:#e2e8f0;padding:0;margin:0;">
   <div style="max-width:600px;margin:0 auto;padding:40px 32px;">
     <div style="margin-bottom:36px;padding-bottom:20px;border-bottom:1px solid #1e293b;">
       <span style="font-size:22px;font-weight:900;color:#a78bfa;">AIVisible</span>
-      <span style="font-size:13px;color:#475569;margin-left:10px;">Egypt&apos;s AI Search Directory</span>
+      <span style="font-size:13px;color:#475569;margin-left:10px;">Egypt's AI Search Directory</span>
     </div>
     ${htmlBody}
     <div style="margin-top:40px;padding-top:20px;border-top:1px solid #1e293b;color:#475569;font-size:12px;">
@@ -81,7 +93,7 @@ export async function POST(req: NextRequest) {
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -94,17 +106,12 @@ export async function POST(req: NextRequest) {
 
     if (res.ok) {
       results.push({ name: brand.name, email: brand.email, ok: true });
-      // Mark outreach as sent
-      await supabaseAdmin.from('brands').update({
-        outreach_sent: true,
-        outreach_sent_at: new Date().toISOString(),
-      }).eq('id', brand.id);
+      await markOutreachSent(brand.id);
     } else {
       const err = await res.text();
       results.push({ name: brand.name, email: brand.email, ok: false, error: err });
     }
 
-    // Small delay to avoid Resend rate limits
     await new Promise(r => setTimeout(r, 100));
   }
 
