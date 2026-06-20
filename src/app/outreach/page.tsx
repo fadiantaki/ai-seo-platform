@@ -30,25 +30,47 @@ export default function OutreachPage() {
   const [dmBrand, setDmBrand] = useState<{ name: string; slug: string; instagram: string } | null>(null);
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<'tracker' | 'bulk-email'>('tracker');
-  const [bulkSubject, setBulkSubject] = useState('Is {name} listed on AIVisible? Here\'s your free optimization code');
+  const [bulkSubject, setBulkSubject] = useState('{name} is now listed on AIVisible — activate your free AI profile');
   const [bulkBody, setBulkBody] = useState(`Hi {name} team,
 
-We just added your business to AIVisible — Egypt's first AI search directory.
+Have you noticed that more and more people are now searching for restaurants and businesses using AI — asking Claude, ChatGPT, or Perplexity instead of Google?
 
-When people ask Claude, ChatGPT, or Perplexity for places to eat or shop in Egypt, AIVisible helps your business appear in those answers.
+"Best restaurants in Cairo", "where to eat in Zamalek", "top brunch spots in New Cairo" — these searches are happening right now, and the businesses that appear are the ones that have set up their AI profile.
 
-Your free profile is already live at: {profile_url}
+That's exactly what we built AIVisible for.
 
-To activate full AI optimization, just paste this one line of code in your website's <head>:
+We've already created a free profile for {name} on AIVisible — Egypt's first AI search directory. Your profile is live at:
+
+👉 {profile_url}
+
+Take a look and make sure your details are accurate (name, description, location, contact). If anything is wrong, just reply to this email and we'll fix it immediately.
+
+---
+
+TO APPEAR IN AI SEARCH RESULTS, DO THIS ONE THING:
+
+Copy this line of code and paste it inside the <head> tag of your website:
 
 {embed_code}
 
-It takes 2 minutes and it's completely free.
+That's it. One line. Takes 2 minutes. And it tells every AI system — Claude, ChatGPT, Perplexity — exactly who you are, what you offer, and where to find you.
 
-If any of your details are wrong, just reply to this email and we'll fix it.
+It's completely free.
 
-— Fadi
-AIVisible · hello@beaivisible.io · @aivisible_eg`);
+---
+
+Why does this matter?
+
+AI search is growing fast. People — especially younger customers — are skipping Google and asking AI directly. The businesses that show up in those answers are the ones they visit. The ones that don't show up simply don't get considered.
+
+AIVisible makes sure {name} is one of the ones that shows up.
+
+Visit your profile, check your details, and paste the code on your site. If you need any help, just reply to this email — we're happy to assist.
+
+— Fadi Antaki
+Founder, AIVisible
+hello@beaivisible.io
+instagram.com/aivisible_eg`);
   const [bulkPreview, setBulkPreview] = useState<{ id: string; name: string; email: string; slug: string }[]>([]);
   const [bulkSending, setBulkSending] = useState(false);
   const [bulkResult, setBulkResult] = useState<{ sent: number; failed: number } | null>(null);

@@ -41,16 +41,39 @@ export async function POST(req: NextRequest) {
       .replace(/\{profile_url\}/g, `https://beaivisible.io/biz/${brand.slug}`)
       .replace(/\{embed_code\}/g, `<script src="https://beaivisible.io/api/embed/${brand.slug}" async></script>`);
 
+    // Convert plain text to HTML: paragraphs, --- dividers, 👉 CTA links, embed code block
+    const htmlBody = personalizedBody
+      .split('\n\n')
+      .map((para: string) => {
+        const trimmed = para.trim();
+        if (trimmed === '---') return '<hr style="border:none;border-top:1px solid #1e293b;margin:28px 0;" />';
+        if (trimmed.startsWith('{embed_code}') || trimmed.includes('<script')) {
+          return `<div style="background:#000;border-radius:10px;padding:16px;font-family:monospace;font-size:13px;color:#4ade80;word-break:break-all;margin:8px 0;">${trimmed.replace('{embed_code}', `&lt;script src="https://beaivisible.io/api/embed/${brand.slug}" async&gt;&lt;/script&gt;`)}</div>`;
+        }
+        if (trimmed.startsWith('👉')) {
+          return `<p style="margin:16px 0;font-size:16px;font-weight:700;">${trimmed.replace(/👉\s*/, '👉 ').replace(/(https?:\/\/\S+)/, '<a href="$1" style="color:#a78bfa;">$1</a>')}</p>`;
+        }
+        if (trimmed.startsWith('TO APPEAR IN AI SEARCH')) {
+          return `<p style="margin:16px 0;font-weight:800;font-size:15px;color:#a78bfa;">${trimmed}</p>`;
+        }
+        return `<p style="margin:16px 0;line-height:1.75;">${trimmed.replace(/\n/g, '<br/>')}</p>`;
+      })
+      .join('');
+
     const html = `
 <!DOCTYPE html>
 <html>
-<body style="font-family: sans-serif; background: #0f172a; color: #e2e8f0; padding: 40px; max-width: 600px; margin: 0 auto;">
-  <div style="margin-bottom: 32px;">
-    <span style="font-size: 24px; font-weight: 900; color: #a78bfa;">AIVisible</span>
+<body style="font-family:Arial,sans-serif;background:#0f172a;color:#e2e8f0;padding:0;margin:0;">
+  <div style="max-width:600px;margin:0 auto;padding:40px 32px;">
+    <div style="margin-bottom:36px;padding-bottom:20px;border-bottom:1px solid #1e293b;">
+      <span style="font-size:22px;font-weight:900;color:#a78bfa;">AIVisible</span>
+      <span style="font-size:13px;color:#475569;margin-left:10px;">Egypt&apos;s AI Search Directory</span>
+    </div>
+    ${htmlBody}
+    <div style="margin-top:40px;padding-top:20px;border-top:1px solid #1e293b;color:#475569;font-size:12px;">
+      AIVisible &middot; <a href="mailto:hello@beaivisible.io" style="color:#a78bfa;">hello@beaivisible.io</a> &middot; <a href="https://instagram.com/aivisible_eg" style="color:#a78bfa;">@aivisible_eg</a>
+    </div>
   </div>
-  <div style="white-space: pre-wrap; line-height: 1.7; color: #e2e8f0;">${personalizedBody}</div>
-  <hr style="border: none; border-top: 1px solid #1e293b; margin: 32px 0;" />
-  <p style="color: #475569; font-size: 12px;">AIVisible · hello@beaivisible.io · <a href="https://instagram.com/aivisible_eg" style="color: #a78bfa;">@aivisible_eg</a></p>
 </body>
 </html>`;
 
